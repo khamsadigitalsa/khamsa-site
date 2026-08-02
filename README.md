@@ -26,10 +26,12 @@
 2. من القائمة: SQL Editor → New query → الصق محتوى `supabase-setup.sql` → Run.
 3. من Settings → API انسخ: **Project URL** و **service_role key** (السري — لا تشاركه أبداً).
 
-### 3) الإيميلات — Brevo (مجاني: 300 إيميل/يوم)
-1. سجّل في brevo.com بإيميل المتجر.
-2. Senders & IP → Senders → Add a sender → أضف إيميل المتجر وفعّله من رسالة التأكيد.
-3. من أعلى اليمين: SMTP & API → API Keys → Generate a new API key → انسخه.
+### 3) الإيميلات — Gmail (مجاني: ~500 إيميل/يوم، بدون تحقق جوال إضافي)
+1. من إيميل المتجر (Gmail): افتح myaccount.google.com → **Security**.
+2. فعّل **2-Step Verification** (التحقق بخطوتين) إن لم يكن مفعلاً.
+3. في نفس صفحة الأمان ابحث عن **App passwords** (كلمات مرور التطبيقات) → أنشئ واحدة باسم `khamsa-site` → انسخ الكود المكون من 16 حرفاً — هذا هو `GMAIL_APP_PASSWORD` (لا تشاركه مع أحد).
+
+> بديل اختياري: إذا نجح تسجيلك في Brevo لاحقاً، أضف متغيري `BREVO_API_KEY` و`SENDER_EMAIL` وسيستخدمه الموقع تلقائياً بدل Gmail (حد أعلى: 300/يوم لكن أفضل للتوسع مستقبلاً).
 
 ### 4) النشر — Vercel (مجاني)
 1. سجّل في vercel.com بحساب GitHub → Add New → Project → اختر `khamsa-site` → Deploy.
@@ -39,8 +41,8 @@
 |---|---|
 | `SUPABASE_URL` | رابط مشروع Supabase |
 | `SUPABASE_SERVICE_KEY` | مفتاح service_role |
-| `BREVO_API_KEY` | مفتاح Brevo |
-| `SENDER_EMAIL` | إيميل المتجر (المفعّل في Brevo) |
+| `GMAIL_USER` | إيميل المتجر (Gmail) |
+| `GMAIL_APP_PASSWORD` | كلمة مرور التطبيق (16 حرفاً من الخطوة 3) |
 | `SENDER_NAME` | خمسة ديجيتال |
 | `ADMIN_PASSWORD` | كلمة سر قوية للوحة المالك — اخترها بنفسك |
 
@@ -57,5 +59,5 @@
 
 ## ملاحظات مهمة
 - **لا ترفع مفاتيحك السرية للموقع أبداً** — مكانها الوحيد Environment Variables في Vercel.
-- حد Brevo المجاني 300 إيميل/يوم — كافٍ جداً للبداية.
+- حد Gmail المجاني ~500 إيميل/يوم — كافٍ جداً للبداية.
 - لإرسال ملف مع الإيصال: ارفعه على Google Drive → مشاركة «أي شخص لديه الرابط» → ضع الرابط في خانة المرفق.
