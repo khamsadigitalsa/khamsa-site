@@ -131,11 +131,12 @@ const PRODUCTS = [
   {img:"p14.jpg", name:"لوحة نجوم المهام", desc:"نظام تحفيز أسبوعي + قسائم مكافآت + شهادة", price:29, cat:"kids"},
   {img:"p15.jpg", name:"حقيبة رمضان للأطفال", desc:"12 نشاطاً رمضانياً + جدول 30 يوماً + شهادة بطل رمضان", price:29, cat:"kids", tag:"موسمي 🌙"},
   // ===== الحزم: 49 / 99 / 149 =====
-  {img:null, name:"حقيبة التأسيس", desc:"الحروف + الأرقام ١-٢٠ + كلماتي الأولى + الأشكال والألوان", price:49, cat:"bundle", tag:"وفر 27 ريالاً", old:76},
-  {img:null, name:"حقيبة التسلية", desc:"المتاهات + البحث عن الحرف + تلوين الحيوانات + قصة أرنوب", price:49, cat:"bundle", tag:"وفر 37 ريالاً", old:86},
-  {img:null, name:"مكتبة طفلي الكاملة", desc:"كل منتجات الأطفال الأحد عشر — قيمتها 249 ريالاً", price:99, cat:"bundle", tag:"وفر 150 ريالاً 🔥", old:249},
-  {img:null, name:"حقيبة التنظيم للكبار", desc:"البلانر التفاعلي + ميزانيتي الذكية + بلانر الطباعة", price:99, cat:"bundle", tag:"وفر 68 ريالاً", old:167},
-  {img:null, name:"باقة كل شيء", desc:"المتجر كاملاً: كل الـ15 منتجاً — قيمتها 445 ريالاً", price:149, cat:"bundle", tag:"الصفقة الكبرى — وفر 296 🔥🔥", old:445},
+  // buy: الصق رابط صفحة المنتج من وصلاتي بين علامتي التنصيص — إذا تركته فاضياً يتحول الزر لواتساب تلقائياً
+  {img:"b01.jpg", name:"حقيبة التأسيس", desc:"الحروف + الأرقام ١-٢٠ + كلماتي الأولى + الأشكال والألوان", price:49, cat:"bundle", tag:"وفر 27 ريالاً", old:76, buy:""},
+  {img:"b02.jpg", name:"حقيبة التسلية", desc:"المتاهات + البحث عن الحرف + تلوين الحيوانات + قصة أرنوب", price:49, cat:"bundle", tag:"وفر 37 ريالاً", old:86, buy:""},
+  {img:"b03.jpg", name:"مكتبة طفلي الكاملة", desc:"كل منتجات الأطفال الأحد عشر — قيمتها 249 ريالاً", price:99, cat:"bundle", tag:"وفر 150 ريالاً 🔥", old:249, buy:""},
+  {img:"b04.jpg", name:"حقيبة التنظيم للكبار", desc:"البلانر التفاعلي + ميزانيتي الذكية + بلانر الطباعة", price:99, cat:"bundle", tag:"وفر 68 ريالاً", old:167, buy:""},
+  {img:"b05.jpg", name:"باقة كل شيء", desc:"المتجر كاملاً: كل الـ15 منتجاً — قيمتها 445 ريالاً", price:149, cat:"bundle", tag:"الصفقة الكبرى — وفر 296 🔥🔥", old:445, buy:""},
 ];
 
 function waLink(name, price){
@@ -155,7 +156,7 @@ function render(filter){
       (p.tag ? '<span class="tag">' + p.tag + '</span>' : '') +
       '<div class="card-body"><h3>' + p.name + '</h3><p>' + p.desc + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
-      '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب الآن</a></div></div>';
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + (p.buy ? p.buy : waLink(p.name, p.price)) + '">' + (p.buy ? "اشترِ الآن 🛒" : "اطلب الآن") + '</a></div></div>';
     grid.appendChild(card);
   });
 }
