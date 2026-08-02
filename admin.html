@@ -47,6 +47,46 @@
     </div>
 
     <div class="panel">
+      <h2>🚚 تسليم طلب — شكراً + الملفات (ضغطة واحدة)</h2>
+      <label for="dl-email">إيميل العميل</label>
+      <input type="email" id="dl-email" placeholder="customer@email.com">
+      <label for="dl-product">المنتج / الحزمة المطلوبة</label>
+      <select id="dl-product">
+        <optgroup label="الحزم">
+          <option value="bundle-everything">باقة كل شيء (149)</option>
+          <option value="bundle-library">مكتبة طفلي الكاملة (99)</option>
+          <option value="bundle-adults">حقيبة التنظيم للكبار (99)</option>
+          <option value="bundle-tasees">حقيبة التأسيس (49)</option>
+          <option value="bundle-tasliya">حقيبة التسلية (49)</option>
+        </optgroup>
+        <optgroup label="الكبار">
+          <option value="interactive">البلانر العربي التفاعلي (79)</option>
+          <option value="budget">ميزانيتي الذكية (49)</option>
+          <option value="daily">بلانر الإنجاز اليومي (39)</option>
+          <option value="cv">حقيبة السيرة الذاتية (29)</option>
+        </optgroup>
+        <optgroup label="الأطفال">
+          <option value="letters">كراسة الحروف والأرقام (19)</option>
+          <option value="numbers20">كراسة الأرقام ١-٢٠ (19)</option>
+          <option value="words">كراسة كلماتي الأولى (19)</option>
+          <option value="shapes">كراسة الأشكال والألوان (19)</option>
+          <option value="animals">كراسة تلوين الحيوانات (19)</option>
+          <option value="mazes">كراسة المتاهات (19)</option>
+          <option value="hunt">لعبة البحث عن الحرف (19)</option>
+          <option value="story">قصة أرنوب (29)</option>
+          <option value="cards">بطاقات الحروف والأرقام (29)</option>
+          <option value="stars">لوحة نجوم المهام (29)</option>
+          <option value="ramadan">حقيبة رمضان (29)</option>
+        </optgroup>
+      </select>
+      <div class="row-actions">
+        <button class="btn btn-gold" id="dl-btn">🚚 تسليم الطلب الآن</button>
+      </div>
+      <p class="hint">يرسل للعميل إيميل «شكراً لطلبك» + روابط تحميل آمنة لكل ملفات المنتج/الحزمة (صالحة 7 أيام). يتطلب رفع الملفات مرة واحدة في Supabase Storage — راجع الدليل.</p>
+      <p class="result" id="dl-msg"></p>
+    </div>
+
+    <div class="panel">
       <h2>✉️ إرسال إيميل (إيصال / ملف / إعلان)</h2>
       <label for="to">إلى</label>
       <select id="to"><option value="all">📢 كل المسجلين</option></select>
@@ -126,6 +166,29 @@ document.getElementById("receipt-btn").addEventListener("click", () => {
 "🛍️ المنتج: (اكتب اسم المنتج)\n💰 المبلغ: (اكتب المبلغ) ر.س\n📅 التاريخ: (اكتب التاريخ)\n\n" +
 "تجد ملفك مرفقاً مع هذه الرسالة، وأي تحديث مستقبلي للمنتج بنرسله لك مجاناً.\n\n" +
 "إذا واجهت أي مشكلة في التحميل كلمنا واتساب وبنخدمك فوراً.\n\nخمسة ديجيتال 💚";
+});
+
+document.getElementById("dl-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("dl-btn");
+  const msg = document.getElementById("dl-msg");
+  btn.disabled = true; btn.textContent = "يسلّم..";
+  msg.textContent = ""; msg.className = "result";
+  try {
+    const r = await fetch("/api/deliver", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        email: document.getElementById("dl-email").value,
+        productKey: document.getElementById("dl-product").value
+      })
+    });
+    const d = await r.json();
+    msg.textContent = d.message || d.error || "صار خطأ";
+    msg.className = "result " + (r.ok ? "ok" : "err");
+  } catch (e) {
+    msg.textContent = "تعذر الاتصال"; msg.className = "result err";
+  }
+  btn.disabled = false; btn.textContent = "🚚 تسليم الطلب الآن";
 });
 
 document.getElementById("send-btn").addEventListener("click", async () => {
