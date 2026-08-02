@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المالك — خمسة ديجيتال</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div class="admin-wrap">
+
+  <!-- شاشة الدخول -->
+  <div class="panel" id="login-panel">
+    <h2>🔐 لوحة المالك</h2>
+    <label for="pass">كلمة السر</label>
+    <input type="password" id="pass" placeholder="••••••••">
+    <div class="row-actions">
+      <button class="btn btn-primary" id="login-btn">دخول</button>
+    </div>
+    <p class="result" id="login-msg"></p>
+  </div>
+
+  <!-- لوحة التحكم -->
+  <div id="dash" style="display:none">
+
+    <div class="panel">
+      <h2>📬 المسجلون في القائمة البريدية</h2>
+      <div class="stat-row">
+        <div class="stat-box"><b id="count">0</b>مسجلاً</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="subs">
+          <thead><tr><th>#</th><th>الاسم</th><th>الإيميل</th><th>تاريخ التسجيل</th></tr></thead>
+          <tbody id="subs-body"></tbody>
+        </table>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-ghost" id="refresh-btn">تحديث القائمة</button>
+        <button class="btn btn-gold" id="csv-btn">تصدير CSV (إكسل)</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>✉️ إرسال إيميل (إيصال / ملف / إعلان)</h2>
+      <label for="to">إلى</label>
+      <select id="to"><option value="all">📢 كل المسجلين</option></select>
+      <label for="subject">عنوان الرسالة</label>
+      <input type="text" id="subject" placeholder="مثال: إيصال طلبك من خمسة ديجيتال 🧾">
+      <label for="message">نص الرسالة</label>
+      <textarea id="message" placeholder="اكتب رسالتك هنا.."></textarea>
+      <label for="att-url">رابط الملف المرفق (اختياري)</label>
+      <input type="url" id="att-url" placeholder="https://... رابط مباشر لملف PDF">
+      <label for="att-name">اسم الملف المرفق (اختياري)</label>
+      <input type="text" id="att-name" placeholder="مثال: البلانر-التفاعلي.pdf">
+      <div class="row-actions">
+        <button class="btn btn-primary" id="send-btn">إرسال</button>
+        <button class="btn btn-ghost" id="receipt-btn">📄 عبّي قالب الإيصال</button>
+      </div>
+      <p class="hint">لإرسال ملف: ارفعه على Google Drive واضغط «مشاركة → أي شخص لديه الرابط»، أو ضع رابطاً مباشراً من أي استضافة. الحد المجاني في Brevo: 300 إيميل يومياً.</p>
+      <p class="result" id="send-msg"></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const loginPanel = document.getElementById("login-panel");
+const dash = document.getElementById("dash");
+
+async function login(){
+  const msg = document.getElementById("login-msg");
+  msg.textContent = "لحظة.."; msg.className = "result";
+  const r = await fetch("/api/admin-login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({password: document.getElementById("pass").value})
+  });
+  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); }
+  else { msg.textContent = "كلمة السر غير صحيحة"; msg.className = "result err"; }
+}
+document.getElementById("login-btn").addEventListener("click", login);
+document.getElementById("pass").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+
+let SUBS = [];
+async function loadSubs(){
+  const r = await fetch("/api/subscribers");
+  if (!r.ok) { loginPanel.style.display = "block"; dash.style.display = "none"; return; }
+  const d = await r.json();
+  SUBS = d.subscribers || [];
+  document.getElementById("count").textContent = SUBS.length;
+  const body = document.getElementById("subs-body");
+  body.innerHTML = "";
+  const sel = document.getElementById("to");
+  sel.innerHTML = '<option value="all">📢 كل المسجلين (' + SUBS.length + ')</option>';
+  SUBS.forEach((s, i) => {
+    const tr = document.createElement("tr");
+    const date = new Date(s.created_at).toLocaleDateString("ar-SA");
+    tr.innerHTML = "<td>" + (i + 1) + "</td><td>" + (s.name || "—") + "</td><td dir='ltr'>" + s.email + "</td><td>" + date + "</td>";
+    body.appendChild(tr);
+    const op = document.createElement("option");
+    op.value = s.email; op.textContent = s.email;
+    sel.appendChild(op);
+  });
+}
+document.getElementById("refresh-btn").addEventListener("click", loadSubs);
+
+document.getElementById("csv-btn").addEventListener("click", () => {
+  let csv = "﻿الاسم,الإيميل,تاريخ التسجيل\n";
+  SUBS.forEach(s => { csv += '"' + (s.name || "") + '","' + s.email + '","' + s.created_at + '"\n'; });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv;charset=utf-8"}));
+  a.download = "subscribers-khamsa.csv";
+  a.click();
+});
+
+document.getElementById("receipt-btn").addEventListener("click", () => {
+  document.getElementById("subject").value = "إيصال طلبك من خمسة ديجيتال 🧾";
+  document.getElementById("message").value =
+"مرحباً 👋\n\nشكراً لطلبك من خمسة ديجيتال! هذا إيصالك:\n\n" +
+"🛍️ المنتج: (اكتب اسم المنتج)\n💰 المبلغ: (اكتب المبلغ) ر.س\n📅 التاريخ: (اكتب التاريخ)\n\n" +
+"تجد ملفك مرفقاً مع هذه الرسالة، وأي تحديث مستقبلي للمنتج بنرسله لك مجاناً.\n\n" +
+"إذا واجهت أي مشكلة في التحميل كلمنا واتساب وبنخدمك فوراً.\n\nخمسة ديجيتال 💚";
+});
+
+document.getElementById("send-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("send-btn");
+  const msg = document.getElementById("send-msg");
+  btn.disabled = true; btn.textContent = "يرسل..";
+  msg.textContent = ""; msg.className = "result";
+  try {
+    const r = await fetch("/api/send-email", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        to: document.getElementById("to").value,
+        subject: document.getElementById("subject").value,
+        message: document.getElementById("message").value,
+        attachmentUrl: document.getElementById("att-url").value,
+        attachmentName: document.getElementById("att-name").value
+      })
+    });
+    const d = await r.json();
+    msg.textContent = d.message || d.error || "صار خطأ";
+    msg.className = "result " + (r.ok ? "ok" : "err");
+  } catch (e) {
+    msg.textContent = "تعذر الاتصال"; msg.className = "result err";
+  }
+  btn.disabled = false; btn.textContent = "إرسال";
+});
+</script>
+</body>
+</html>
