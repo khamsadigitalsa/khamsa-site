@@ -1,10 +1,22 @@
 // إنشاء فاتورة دفع في Paylink وإرجاع رابط صفحة الدفع (مدى + Apple Pay)
 const { PRODUCTS } = require("./_delivery.js");
 
+// ملاحظة: سيرفر التجربة restpilot.paylink.sa تظهر عليه شهادة أمان لدومين آخر (خلل من Paylink)
+// فيفشل الاتصال به. استخدم PAYLINK_MODE=live مع مفاتيحك الحقيقية.
 function base() {
-  return process.env.PAYLINK_MODE === "live"
-    ? "https://restapi.paylink.sa"
-    : "https://restpilot.paylink.sa";
+  return process.env.PAYLINK_MODE === "test"
+    ? "https://restpilot.paylink.sa"
+    : "https://restapi.paylink.sa";
+}
+
+function friendly(e) {
+  const m = String(e && e.message || "");
+  if (/fetch failed|certificate|ENOTFOUND|ECONN/i.test(m)) {
+    return process.env.PAYLINK_MODE === "test"
+      ? "تعذر الاتصال بسيرفر التجربة لدى Paylink (خلل لديهم) — استخدم الوضع الحقيقي live"
+      : "تعذر الاتصال ببوابة الدفع حالياً";
+  }
+  return m.slice(0, 160);
 }
 
 async function token() {
@@ -69,6 +81,6 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok: true, url: d.url, transactionNo: d.transactionNo });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: "خطأ: " + e.message.slice(0, 160) });
+    return res.status(500).json({ error: friendly(e) });
   }
 };

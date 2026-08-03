@@ -4,9 +4,9 @@ const { sbFetch } = require("./_lib.js");
 const { PRODUCTS, signLinks, deliverProduct, addSubscriber } = require("./_delivery.js");
 
 function paylinkBase() {
-  return process.env.PAYLINK_MODE === "live"
-    ? "https://restapi.paylink.sa"
-    : "https://restpilot.paylink.sa";
+  return process.env.PAYLINK_MODE === "test"
+    ? "https://restpilot.paylink.sa"
+    : "https://restapi.paylink.sa";
 }
 
 // يستخرج المنتج والإيميل من رقم الطلب: KH-<productKey>-<emailBase64url>-<n>
