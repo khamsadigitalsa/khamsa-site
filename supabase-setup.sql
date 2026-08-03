@@ -9,3 +9,13 @@ create table if not exists public.subscribers (
 -- تفعيل حماية الصفوف: لا أحد يقرأ الجدول من المتصفح مباشرة
 -- (الموقع يتعامل معه من السيرفر فقط عبر مفتاح service_role)
 alter table public.subscribers enable row level security;
+
+-- جدول الطلبات المدفوعة (للدفع الآلي بميسر — يمنع تكرار التسليم)
+create table if not exists public.orders (
+  id text primary key,
+  email text,
+  product text,
+  amount int,
+  created_at timestamptz not null default now()
+);
+alter table public.orders enable row level security;

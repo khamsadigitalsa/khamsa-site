@@ -100,6 +100,7 @@
       <a href="#" id="foot-wa" target="_blank" rel="noopener">💬 واتساب</a>
       <a href="https://waslati.com/khamsa" target="_blank" rel="noopener">🔗 صفحة الطلب (وصلاتي)</a>
       <a href="#products">🛍️ المنتجات</a>
+      <a href="/policies">📄 الشروط والسياسات</a>
     </div>
     <p class="copy">© <span id="year"></span> خمسة ديجيتال — جميع الحقوق محفوظة</p>
   </div>
@@ -111,32 +112,35 @@ const WHATSAPP = "966548133555";              // رقم واتساب المتج�
 const ORDER_PAGE = "https://waslati.com/khamsa"; // صفحة الطلب/الدفع
 // ==========================================================
 
+// فعّل الدفع الآلي: بعد تفعيل ميسر ولصق مفتاحك في checkout.html — غيّر false إلى true
+const CHECKOUT_READY = false;
+
 const PRODUCTS = [
   // ===== للكبار: 29 / 39 / 49 / 79 =====
-  {img:"p01.jpg", name:"البلانر العربي التفاعلي (GoodNotes)", desc:"هجري وميلادي، تبويبات تنقل ذكية للآيباد — 23 صفحة", price:79, old:99, cat:"adult", tag:"الأكثر تميزاً ⭐"},
-  {img:"p02.jpg", name:"ميزانيتي الذكية (إكسل)", desc:"لوحة تحكم تلقائية لراتبك ومصاريفك وأهداف ادخارك", price:49, cat:"adult", tag:"الأكثر طلباً"},
-  {img:"p03.jpg", name:"بلانر الإنجاز اليومي (طباعة)", desc:"غير مؤرخ: يومي + أسبوعي + عادات + متتبع صلوات", price:39, cat:"adult"},
-  {img:"p04.jpg", name:"حقيبة السيرة الذاتية (ATS)", desc:"قالبان عربي وإنجليزي يعبران أنظمة الفرز الآلي", price:29, cat:"adult"},
+  {key:"interactive", img:"p01.jpg", name:"البلانر العربي التفاعلي (GoodNotes)", desc:"هجري وميلادي، تبويبات تنقل ذكية للآيباد — 23 صفحة", price:79, old:99, cat:"adult", tag:"الأكثر تميزاً ⭐"},
+  {key:"budget", img:"p02.jpg", name:"ميزانيتي الذكية (إكسل)", desc:"لوحة تحكم تلقائية لراتبك ومصاريفك وأهداف ادخارك", price:49, cat:"adult", tag:"الأكثر طلباً"},
+  {key:"daily", img:"p03.jpg", name:"بلانر الإنجاز اليومي (طباعة)", desc:"غير مؤرخ: يومي + أسبوعي + عادات + متتبع صلوات", price:39, cat:"adult"},
+  {key:"cv", img:"p04.jpg", name:"حقيبة السيرة الذاتية (ATS)", desc:"قالبان عربي وإنجليزي يعبران أنظمة الفرز الآلي", price:29, cat:"adult"},
   // ===== كراسات الأطفال التعليمية: كلها 19 =====
-  {img:"p05.jpg", name:"كراسة الحروف والأرقام", desc:"تأسيس كامل: 28 حرفاً بالتتبع + أرقام + شهادة إنجاز", price:19, cat:"kids", tag:"الأفضل مبيعاً"},
-  {img:"p06.jpg", name:"كراسة الأرقام من ١ إلى ٢٠", desc:"تتبع وعد وتمارين ذكية لتثبيت الأرقام", price:19, cat:"kids"},
-  {img:"p07.jpg", name:"كراسة كلماتي الأولى", desc:"أول 20 كلمة يقرأها ويكتبها طفلك بيده", price:19, cat:"kids"},
-  {img:"p08.jpg", name:"كراسة الأشكال والألوان", desc:"8 أشكال و8 ألوان بأنشطة ربط بالواقع", price:19, cat:"kids"},
-  {img:"p09.jpg", name:"كراسة تلوين الحيوانات", desc:"12 حيواناً لطيفاً بخطوط سميكة + أسماء للتتبع", price:19, cat:"kids"},
-  {img:"p11.jpg", name:"كراسة المتاهات", desc:"12 متاهة متدرجة تنمي التركيز — بدون شاشات", price:19, cat:"kids"},
-  {img:"p12.jpg", name:"لعبة البحث عن الحرف", desc:"28 لوحة بحث تثبت شكل الحروف باللعب", price:19, cat:"kids"},
+  {key:"letters", img:"p05.jpg", name:"كراسة الحروف والأرقام", desc:"تأسيس كامل: 28 حرفاً بالتتبع + أرقام + شهادة إنجاز", price:19, cat:"kids", tag:"الأفضل مبيعاً"},
+  {key:"numbers20", img:"p06.jpg", name:"كراسة الأرقام من ١ إلى ٢٠", desc:"تتبع وعد وتمارين ذكية لتثبيت الأرقام", price:19, cat:"kids"},
+  {key:"words", img:"p07.jpg", name:"كراسة كلماتي الأولى", desc:"أول 20 كلمة يقرأها ويكتبها طفلك بيده", price:19, cat:"kids"},
+  {key:"shapes", img:"p08.jpg", name:"كراسة الأشكال والألوان", desc:"8 أشكال و8 ألوان بأنشطة ربط بالواقع", price:19, cat:"kids"},
+  {key:"animals", img:"p09.jpg", name:"كراسة تلوين الحيوانات", desc:"12 حيواناً لطيفاً بخطوط سميكة + أسماء للتتبع", price:19, cat:"kids"},
+  {key:"mazes", img:"p11.jpg", name:"كراسة المتاهات", desc:"12 متاهة متدرجة تنمي التركيز — بدون شاشات", price:19, cat:"kids"},
+  {key:"hunt", img:"p12.jpg", name:"لعبة البحث عن الحرف", desc:"28 لوحة بحث تثبت شكل الحروف باللعب", price:19, cat:"kids"},
   // ===== منتجات الأطفال المميزة: كلها 29 =====
-  {img:"p10.jpg", name:"قصة أرنوب والحروف الضائعة", desc:"قصة تفاعلية: يقرأ ويحل الأنشطة بنفس الوقت", price:29, cat:"kids", tag:"جديد"},
-  {img:"p13.jpg", name:"بطاقات الحروف والأرقام", desc:"38 فلاش كارد للطباعة والقص + أفكار ألعاب", price:29, cat:"kids"},
-  {img:"p14.jpg", name:"لوحة نجوم المهام", desc:"نظام تحفيز أسبوعي + قسائم مكافآت + شهادة", price:29, cat:"kids"},
-  {img:"p15.jpg", name:"حقيبة رمضان للأطفال", desc:"12 نشاطاً رمضانياً + جدول 30 يوماً + شهادة بطل رمضان", price:29, cat:"kids", tag:"موسمي 🌙"},
+  {key:"story", img:"p10.jpg", name:"قصة أرنوب والحروف الضائعة", desc:"قصة تفاعلية: يقرأ ويحل الأنشطة بنفس الوقت", price:29, cat:"kids", tag:"جديد"},
+  {key:"cards", img:"p13.jpg", name:"بطاقات الحروف والأرقام", desc:"38 فلاش كارد للطباعة والقص + أفكار ألعاب", price:29, cat:"kids"},
+  {key:"stars", img:"p14.jpg", name:"لوحة نجوم المهام", desc:"نظام تحفيز أسبوعي + قسائم مكافآت + شهادة", price:29, cat:"kids"},
+  {key:"ramadan", img:"p15.jpg", name:"حقيبة رمضان للأطفال", desc:"12 نشاطاً رمضانياً + جدول 30 يوماً + شهادة بطل رمضان", price:29, cat:"kids", tag:"موسمي 🌙"},
   // ===== الحزم: 49 / 99 / 149 =====
   // buy: الصق رابط صفحة المنتج من وصلاتي بين علامتي التنصيص — إذا تركته فاضياً يتحول الزر لواتساب تلقائياً
-  {img:"b01.jpg", name:"حقيبة التأسيس", desc:"الحروف + الأرقام ١-٢٠ + كلماتي الأولى + الأشكال والألوان", price:49, cat:"bundle", tag:"وفر 27 ريالاً", old:76, buy:""},
-  {img:"b02.jpg", name:"حقيبة التسلية", desc:"المتاهات + البحث عن الحرف + تلوين الحيوانات + قصة أرنوب", price:49, cat:"bundle", tag:"وفر 37 ريالاً", old:86, buy:""},
-  {img:"b03.jpg", name:"مكتبة طفلي الكاملة", desc:"كل منتجات الأطفال الأحد عشر — قيمتها 249 ريالاً", price:99, cat:"bundle", tag:"وفر 150 ريالاً 🔥", old:249, buy:""},
-  {img:"b04.jpg", name:"حقيبة التنظيم للكبار", desc:"البلانر التفاعلي + ميزانيتي الذكية + بلانر الطباعة", price:99, cat:"bundle", tag:"وفر 68 ريالاً", old:167, buy:""},
-  {img:"b05.jpg", name:"باقة كل شيء", desc:"المتجر كاملاً: كل الـ15 منتجاً — قيمتها 445 ريالاً", price:149, cat:"bundle", tag:"الصفقة الكبرى — وفر 296 🔥🔥", old:445, buy:""},
+  {key:"bundle-tasees", img:"b01.jpg", name:"حقيبة التأسيس", desc:"الحروف + الأرقام ١-٢٠ + كلماتي الأولى + الأشكال والألوان", price:49, cat:"bundle", tag:"وفر 27 ريالاً", old:76, buy:""},
+  {key:"bundle-tasliya", img:"b02.jpg", name:"حقيبة التسلية", desc:"المتاهات + البحث عن الحرف + تلوين الحيوانات + قصة أرنوب", price:49, cat:"bundle", tag:"وفر 37 ريالاً", old:86, buy:""},
+  {key:"bundle-library", img:"b03.jpg", name:"مكتبة طفلي الكاملة", desc:"كل منتجات الأطفال الأحد عشر — قيمتها 249 ريالاً", price:99, cat:"bundle", tag:"وفر 150 ريالاً 🔥", old:249, buy:""},
+  {key:"bundle-adults", img:"b04.jpg", name:"حقيبة التنظيم للكبار", desc:"البلانر التفاعلي + ميزانيتي الذكية + بلانر الطباعة", price:99, cat:"bundle", tag:"وفر 68 ريالاً", old:167, buy:""},
+  {key:"bundle-everything", img:"b05.jpg", name:"باقة كل شيء", desc:"المتجر كاملاً: كل الـ15 منتجاً — قيمتها 445 ريالاً", price:149, cat:"bundle", tag:"الصفقة الكبرى — وفر 296 🔥🔥", old:445, buy:""},
 ];
 
 function waLink(name, price){
@@ -156,7 +160,12 @@ function render(filter){
       (p.tag ? '<span class="tag">' + p.tag + '</span>' : '') +
       '<div class="card-body"><h3>' + p.name + '</h3><p>' + p.desc + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
-      '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + (p.buy ? p.buy : waLink(p.name, p.price)) + '">' + (p.buy ? "اشترِ الآن 🛒" : "اطلب الآن") + '</a></div></div>';
+      (function(){
+        // الأولوية: الدفع الآلي بميسر ← رابط وصلاتي اليدوي ← واتساب
+        if (CHECKOUT_READY && p.key) return '<a class="btn btn-sm" href="/checkout?p=' + p.key + '">اشترِ الآن 🛒</a>';
+        if (p.buy) return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + p.buy + '">اشترِ الآن 🛒</a>';
+        return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب الآن</a>';
+      })() + '</div></div>';
     grid.appendChild(card);
   });
 }

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إتمام الشراء — خمسة ديجيتال</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .co-wrap{max-width:520px;margin:34px auto;padding:0 18px}
+  .co-product{display:flex;gap:16px;align-items:center;background:#fff;border-radius:16px;
+    box-shadow:var(--shadow);padding:16px;margin-bottom:18px}
+  .co-product img{width:92px;height:92px;border-radius:12px;object-fit:cover}
+  .co-product h1{font-size:1.15rem;margin:0 0 4px}
+  .co-product .price{font-size:1.25rem}
+  .back{display:inline-block;margin:14px 0;color:var(--teal);font-weight:700}
+  .pays{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px;
+    color:var(--grey);font-size:.85rem;flex-wrap:wrap}
+  .pay-chip{background:var(--teal-soft);border-radius:8px;padding:4px 12px;font-weight:700;color:var(--teal-deep)}
+  .trust{text-align:center;color:var(--grey);font-size:.82rem;margin-top:12px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="co-wrap">
+  <a href="/" class="back">→ الرجوع للمتجر</a>
+  <div class="co-product" id="co-product"></div>
+
+  <div class="panel" id="email-step">
+    <h2>📧 إيميلك (توصلك عليه الملفات فوراً)</h2>
+    <label for="co-email">الإيميل</label>
+    <input type="email" id="co-email" placeholder="you@email.com" required autocomplete="email">
+    <div class="row-actions">
+      <button class="btn btn-primary" id="co-continue">متابعة للدفع الآمن 🔒</button>
+    </div>
+    <p class="result err" id="co-msg"></p>
+    <div class="pays">
+      <span class="pay-chip">مدى</span>
+      <span class="pay-chip">Apple Pay</span>
+      <span class="pay-chip">فيزا / ماستركارد</span>
+    </div>
+    <p class="trust">دفع آمن عبر بوابة مرخصة من البنك المركزي السعودي 🇸🇦<br>
+    ملفاتك تصلك تلقائياً خلال ثوانٍ من إتمام الدفع<br>
+    <a href="/policies" style="color:var(--teal)">الشروط وسياسة الاسترجاع</a></p>
+  </div>
+</div>
+
+<script>
+const WHATSAPP = "966548133555";
+
+const PRODUCTS = {
+  "interactive":  {name:"البلانر العربي التفاعلي (GoodNotes)", price:79, img:"p01.jpg"},
+  "budget":       {name:"ميزانيتي الذكية (إكسل)", price:49, img:"p02.jpg"},
+  "daily":        {name:"بلانر الإنجاز اليومي (طباعة)", price:39, img:"p03.jpg"},
+  "cv":           {name:"حقيبة السيرة الذاتية (ATS)", price:29, img:"p04.jpg"},
+  "letters":      {name:"كراسة الحروف والأرقام", price:19, img:"p05.jpg"},
+  "numbers20":    {name:"كراسة الأرقام من ١ إلى ٢٠", price:19, img:"p06.jpg"},
+  "words":        {name:"كراسة كلماتي الأولى", price:19, img:"p07.jpg"},
+  "shapes":       {name:"كراسة الأشكال والألوان", price:19, img:"p08.jpg"},
+  "animals":      {name:"كراسة تلوين الحيوانات", price:19, img:"p09.jpg"},
+  "story":        {name:"قصة أرنوب والحروف الضائعة", price:29, img:"p10.jpg"},
+  "mazes":        {name:"كراسة المتاهات", price:19, img:"p11.jpg"},
+  "hunt":         {name:"لعبة البحث عن الحرف", price:19, img:"p12.jpg"},
+  "cards":        {name:"بطاقات الحروف والأرقام", price:29, img:"p13.jpg"},
+  "stars":        {name:"لوحة نجوم المهام", price:29, img:"p14.jpg"},
+  "ramadan":      {name:"حقيبة رمضان للأطفال", price:29, img:"p15.jpg"},
+  "bundle-tasees":     {name:"حقيبة التأسيس", price:49, img:"b01.jpg"},
+  "bundle-tasliya":    {name:"حقيبة التسلية", price:49, img:"b02.jpg"},
+  "bundle-library":    {name:"مكتبة طفلي الكاملة", price:99, img:"b03.jpg"},
+  "bundle-adults":     {name:"حقيبة التنظيم للكبار", price:99, img:"b04.jpg"},
+  "bundle-everything": {name:"باقة كل شيء (المتجر كاملاً)", price:149, img:"b05.jpg"},
+};
+
+const key = new URLSearchParams(location.search).get("p");
+const product = PRODUCTS[key];
+const box = document.getElementById("co-product");
+
+if (!product) {
+  box.innerHTML = "<div><h1>المنتج غير موجود</h1><p><a href='/' style='color:var(--teal)'>ارجع للمتجر واختر منتجاً</a></p></div>";
+  document.getElementById("email-step").style.display = "none";
+} else {
+  box.innerHTML = '<img src="/products/' + product.img + '" alt="">' +
+    '<div><h1>' + product.name + '</h1><div class="price"><b>' + product.price + '</b> ر.س — تحميل فوري بعد الدفع</div></div>';
+}
+
+document.getElementById("co-continue").addEventListener("click", async () => {
+  const btn = document.getElementById("co-continue");
+  const msg = document.getElementById("co-msg");
+  const email = document.getElementById("co-email").value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    msg.textContent = "اكتب إيميلاً صحيحاً — عليه توصلك الملفات"; return;
+  }
+  msg.textContent = "";
+  btn.disabled = true; btn.textContent = "جاري تجهيز الدفع..";
+
+  // بديل مضمون: مهما صار، العميل يقدر يكمل طلبه بواتساب
+  const wa = "https://wa.me/" + WHATSAPP + "?text=" +
+    encodeURIComponent("مرحباً 👋 أبغى أطلب: " + product.name + " (" + product.price + " ر.س)\nإيميلي: " + email);
+  const fallback = function (reason) {
+    msg.innerHTML = reason +
+      '<br><a class="btn btn-wa" style="margin-top:10px" href="' + wa + '" target="_blank" rel="noopener">أكمل الطلب عبر واتساب 💬</a>';
+  };
+
+  try {
+    const r = await fetch("/api/pay-start", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ productKey: key, email: email })
+    });
+    const d = await r.json().catch(function () { return {}; });
+    if (r.ok && d.url) { location.href = d.url; return; }
+    fallback(d.error || "تعذر فتح صفحة الدفع");
+  } catch (e) {
+    fallback("تعذر الاتصال بصفحة الدفع");
+  }
+  btn.disabled = false; btn.textContent = "متابعة للدفع الآمن 🔒";
+});
+</script>
+</body>
+</html>
