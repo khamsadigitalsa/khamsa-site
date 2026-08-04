@@ -2,6 +2,7 @@
 // نقطة عامة: آمنة لأن التحقق يتم من سيرفر البوابة مباشرة بالمفتاح السري
 const { sbFetch } = require("./_lib.js");
 const { PRODUCTS, signLinks, deliverProduct, addSubscriber } = require("./_delivery.js");
+const { finalPrice, redeem } = require("./_discounts.js");
 
 function paylinkBase() {
   return process.env.PAYLINK_MODE === "test"
@@ -9,13 +10,24 @@ function paylinkBase() {
     : "https://restapi.paylink.sa";
 }
 
-// يستخرج المنتج والإيميل من رقم الطلب: KH-<productKey>-<emailBase64url>-<n>
+// يستخرج نسبة الخصم والمنتج والإيميل من رقم الطلب.
+// الصيغة الحالية: KH-D<pct>-<productKey>-<emailBase64url>-<n>
+// والقديمة (بلا خصم): KH-<productKey>-<emailBase64url>-<n>
 function parseOrder(orderNumber) {
-  const m = String(orderNumber || "").match(/^KH-(.+)-([A-Za-z0-9_-]+)-\d*$/);
-  if (!m) return {};
-  let email = "";
-  try { email = Buffer.from(m[2], "base64url").toString("utf8"); } catch (e) {}
-  return { productKey: m[1], email };
+  const s = String(orderNumber || "");
+  const decode = (b) => { try { return Buffer.from(b, "base64url").toString("utf8"); } catch (e) { return ""; } };
+
+  // الكود مقيّد بـ [A-Z0-9] فلا يحتوي شرطة، وبذلك يبقى الفصل واضحاً
+  let m = s.match(/^KH-D(\d{1,3})C([A-Z0-9]*)-(.+)-([A-Za-z0-9_-]+)-\d*$/);
+  if (m) {
+    return { percent: Math.min(100, Number(m[1])), code: m[2] || "",
+             productKey: m[3], email: decode(m[4]) };
+  }
+
+  m = s.match(/^KH-(.+)-([A-Za-z0-9_-]+)-\d*$/);
+  if (m) return { percent: 0, code: "", productKey: m[1], email: decode(m[2]) };
+
+  return {};
 }
 
 async function verifyPaylink(transactionNo) {
@@ -46,6 +58,8 @@ async function verifyPaylink(transactionNo) {
     productKey: parsed.productKey,
     email: (inv.clientEmail || parsed.email || "").toLowerCase().trim(),
     amount: Number(inv.amount),   // بالريال
+    percent: parsed.percent || 0,
+    code: parsed.code || "",
   };
 }
 
@@ -84,8 +98,14 @@ module.exports = async (req, res) => {
 
     const product = PRODUCTS[result.productKey];
     if (!product) return res.status(400).json({ error: "منتج غير معروف في بيانات الدفعة" });
-    if (Math.round(result.amount) !== product.price) {
-      return res.status(400).json({ error: "مبلغ الدفعة لا يطابق سعر المنتج — تواصل معنا" });
+
+    // المبلغ المتوقّع = السعر بعد الخصم المسجَّل في رقم الطلب.
+    // رقم الطلب أنشأه سيرفرنا وعاد من البوابة، فلا يمكن للمتصفح تزويره.
+    const expected = finalPrice(product.price, result.percent);
+    if (Math.round(result.amount) !== expected) {
+      return res.status(400).json({
+        error: "مبلغ الدفعة لا يطابق سعر المنتج — تواصل معنا",
+      });
     }
 
     // يُسجَّل الطلب أولاً حتى لو تعثّر التسليم — الدفعة حصلت ولا يجوز ضياع أثرها
@@ -95,6 +115,8 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         id: result.paymentId, email: result.email,
         product: result.productKey, amount: Math.round(result.amount * 100),
+        discount_percent: result.percent || 0,
+        discount_code: result.code || null,
       }),
     });
 
@@ -113,6 +135,10 @@ module.exports = async (req, res) => {
     let links = null, emailed = false, deliveryError = null;
     try {
       if (!alreadyDelivered && result.email) {
+        // يُستهلك الكود مرة واحدة فقط، وعند نجاح الدفع لا عند فتح صفحة الدفع
+        if (result.code) {
+          await redeem(result.code, result.productKey).catch(() => {});
+        }
         const out = await deliverProduct(result.email, result.productKey);
         links = out.links;
         emailed = true;

@@ -10,6 +10,26 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+<style>
+  .disc-form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    align-items:end}
+  .disc-form label{display:block;font-size:.82rem;font-weight:700;margin-bottom:4px}
+  .disc-form input,.disc-form select{width:100%}
+  .dc-table{width:100%;border-collapse:collapse;font-size:.88rem}
+  .dc-table th,.dc-table td{padding:9px 8px;border-bottom:1px solid #E8E0D2;text-align:right;
+    vertical-align:middle}
+  .dc-table thead th{background:#14504E;color:#fff;font-size:.8rem;white-space:nowrap}
+  .dc-code{font-weight:800;letter-spacing:.04em;direction:ltr;display:inline-block}
+  .dc-pct{font-weight:800;color:#14504E}
+  .dc-pct.full{color:#B3261E}
+  .dc-off{opacity:.45}
+  .dc-tag{background:#F2F7F6;border-radius:99px;padding:2px 9px;font-size:.75rem;font-weight:700}
+  .dc-tag.warn{background:#F5EBD3;color:#8a6d14}
+  .dc-btn{border:1px solid #E8E0D2;background:#fff;border-radius:8px;cursor:pointer;
+    padding:5px 9px;font-size:.78rem;font-weight:700;color:#5b6b68}
+  .dc-btn:hover{border-color:#B3261E;color:#B3261E}
+  .dc-scroll{overflow-x:auto}
+</style>
 </head>
 <body>
 
@@ -89,6 +109,31 @@
     </div>
 
     <div class="panel">
+      <h2>🎟️ أكواد الخصم</h2>
+      <div class="disc-form">
+        <div><label for="dc-code">الكود</label>
+          <input id="dc-code" placeholder="WELCOME20" maxlength="24"
+                 style="text-transform:uppercase"></div>
+        <div><label for="dc-percent">النسبة %</label>
+          <input id="dc-percent" type="number" min="1" max="100" value="20"></div>
+        <div><label for="dc-uses">عدد الاستخدامات</label>
+          <input id="dc-uses" type="number" min="1" placeholder="بلا حد"></div>
+        <div><label for="dc-expires">ينتهي في</label>
+          <input id="dc-expires" type="date"></div>
+        <div><label for="dc-product">المنتج</label>
+          <select id="dc-product"><option value="">كل المنتجات</option></select></div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-gold" id="dc-add">+ إنشاء الكود</button>
+      </div>
+      <p class="hint">النسبة تصل إلى 100% — عندها يصبح المنتج مجانياً بالكامل
+        وتُسلَّم الملفات فوراً بلا بوابة دفع. استخدم «عدد الاستخدامات» و«ينتهي في»
+        لتقييد أكواد 100% حتى لا تنتشر.</p>
+      <p class="result" id="dc-msg"></p>
+      <div id="dc-list" style="margin-top:14px"></div>
+    </div>
+
+    <div class="panel">
       <h2>✉️ إرسال إيميل (إيصال / ملف / إعلان)</h2>
       <label for="to">إلى</label>
       <select id="to"><option value="all">📢 كل المسجلين</option></select>
@@ -123,7 +168,7 @@ async function login(){
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({password: document.getElementById("pass").value})
   });
-  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); }
+  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); dcLoad(); }
   else { msg.textContent = "كلمة السر غير صحيحة"; msg.className = "result err"; }
 }
 document.getElementById("login-btn").addEventListener("click", login);
@@ -244,6 +289,121 @@ document.getElementById("send-btn").addEventListener("click", async () => {
     msg.textContent = "تعذر الاتصال"; msg.className = "result err";
   }
   btn.disabled = false; btn.textContent = "إرسال";
+});
+
+/* ═══════════ أكواد الخصم ═══════════ */
+const dcEsc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// نملأ قائمة المنتجات من نفس قائمة التسليم أعلى الصفحة
+(function fillProducts(){
+  const src = document.getElementById("dl-product");
+  const dst = document.getElementById("dc-product");
+  if (!src || !dst) return;
+  src.querySelectorAll("option").forEach(o => {
+    const opt = document.createElement("option");
+    opt.value = o.value; opt.textContent = o.textContent;
+    dst.appendChild(opt);
+  });
+})();
+
+async function dcApi(opts){
+  const r = await fetch("/api/admin-discounts", opts);
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+
+function dcRow(d){
+  const now = Date.now();
+  const expired = d.expires_at && new Date(d.expires_at).getTime() <= now;
+  const exhausted = d.max_uses != null && d.used_count >= d.max_uses;
+  const dead = !d.active || expired || exhausted;
+  const tags = [];
+  if (!d.active)  tags.push('<span class="dc-tag warn">متوقّف</span>');
+  if (expired)    tags.push('<span class="dc-tag warn">منتهٍ</span>');
+  if (exhausted)  tags.push('<span class="dc-tag warn">مستهلك</span>');
+  if (d.product)  tags.push('<span class="dc-tag">' + dcEsc(d.product) + '</span>');
+  return '<tr class="' + (dead ? "dc-off" : "") + '" data-code="' + dcEsc(d.code) + '">' +
+    '<td><span class="dc-code">' + dcEsc(d.code) + '</span></td>' +
+    '<td><span class="dc-pct ' + (d.percent === 100 ? "full" : "") + '">' + d.percent + '%</span></td>' +
+    '<td>' + d.used_count + (d.max_uses != null ? " / " + d.max_uses : " / ∞") + '</td>' +
+    '<td>' + (d.expires_at ? String(d.expires_at).slice(0,10) : "—") + '</td>' +
+    '<td>' + (tags.join(" ") || "—") + '</td>' +
+    '<td style="white-space:nowrap">' +
+      '<button class="dc-btn dc-toggle">' + (d.active ? "إيقاف" : "تفعيل") + '</button> ' +
+      '<button class="dc-btn dc-reset">تصفير</button> ' +
+      '<button class="dc-btn dc-del">حذف</button>' +
+    '</td></tr>';
+}
+
+async function dcLoad(){
+  const box = document.getElementById("dc-list");
+  const { ok, data } = await dcApi({});
+  if (!ok) { box.innerHTML = '<p class="result err">' + (data.error || "تعذّرت القراءة") + '</p>'; return; }
+  const list = data.discounts || [];
+  if (!list.length) { box.innerHTML = '<p class="hint">لا توجد أكواد بعد.</p>'; return; }
+  box.innerHTML = '<div class="dc-scroll"><table class="dc-table"><thead><tr>' +
+    '<th>الكود</th><th>الخصم</th><th>الاستخدام</th><th>ينتهي</th><th>الحالة</th><th></th>' +
+    '</tr></thead><tbody>' + list.map(dcRow).join("") + '</tbody></table></div>';
+
+  box.querySelectorAll("tr[data-code]").forEach(tr => {
+    const code = tr.dataset.code;
+    const item = list.find(x => x.code === code);
+    tr.querySelector(".dc-toggle").addEventListener("click", async () => {
+      await dcApi({ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"update", code, active: !item.active }) });
+      dcLoad();
+    });
+    tr.querySelector(".dc-reset").addEventListener("click", async () => {
+      if (!confirm("تصفير عدّاد استخدام «" + code + "»؟")) return;
+      await dcApi({ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"update", code, reset_uses:true }) });
+      dcLoad();
+    });
+    tr.querySelector(".dc-del").addEventListener("click", async () => {
+      if (!confirm("حذف الكود «" + code + "» نهائياً؟")) return;
+      await dcApi({ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"delete", code }) });
+      dcLoad();
+    });
+  });
+}
+
+document.getElementById("dc-add").addEventListener("click", async () => {
+  const btn = document.getElementById("dc-add");
+  const msg = document.getElementById("dc-msg");
+  const code = document.getElementById("dc-code").value.trim().toUpperCase();
+  const percent = Number(document.getElementById("dc-percent").value);
+  msg.textContent = ""; msg.className = "result";
+
+  if (!/^[A-Z0-9]{2,24}$/.test(code)) {
+    msg.textContent = "الكود: حروف إنجليزية كبيرة وأرقام فقط (2–24 خانة)";
+    msg.className = "result err"; return;
+  }
+  if (percent === 100 && !confirm(
+      "خصم 100% يعني أن العميل يحصل على المنتج مجاناً بلا دفع.\n\n" +
+      "يُنصح بتحديد «عدد الاستخدامات» أو تاريخ انتهاء.\n\nمتابعة؟")) return;
+
+  btn.disabled = true; btn.textContent = "..";
+  const { ok, data } = await dcApi({
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      action: "create", code, percent,
+      max_uses: document.getElementById("dc-uses").value,
+      expires_at: document.getElementById("dc-expires").value,
+      product: document.getElementById("dc-product").value,
+    })
+  });
+  if (ok) {
+    msg.textContent = "✅ تم إنشاء الكود " + code;
+    msg.className = "result ok";
+    document.getElementById("dc-code").value = "";
+    document.getElementById("dc-uses").value = "";
+    dcLoad();
+  } else {
+    msg.textContent = data.error || "تعذّر الإنشاء";
+    msg.className = "result err";
+  }
+  btn.disabled = false; btn.textContent = "+ إنشاء الكود";
 });
 </script>
 </body>

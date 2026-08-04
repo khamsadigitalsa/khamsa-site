@@ -13,6 +13,31 @@ BACKSLASH = chr(92)
 PAIRS = {")": "(", "]": "[", "}": "{"}
 
 
+def _regex_allowed(src, i):
+    """هل الشرطة المائلة هنا بداية تعبير نمطي أم قسمة؟
+
+    الفارق يُحسم بآخر رمز ذي معنى قبلها: بعد قيمة (متغيّر، رقم، قوس إغلاق)
+    تكون قسمة، وفيما عدا ذلك تكون بداية regex.
+    """
+    j = i - 1
+    while j >= 0 and src[j] in " \t\r\n":
+        j -= 1
+    if j < 0:
+        return True
+    prev = src[j]
+    if prev in ")]}":
+        return False
+    if prev.isalnum() or prev in "_$":
+        # كلمات مفتاحية يتبعها regex لا قسمة
+        k = j
+        while k >= 0 and (src[k].isalnum() or src[k] in "_$"):
+            k -= 1
+        word = src[k + 1:j + 1]
+        return word in ("return", "typeof", "case", "in", "of", "new", "delete",
+                        "do", "else", "yield", "await", "void", "instanceof")
+    return True
+
+
 def scan(src):
     i, n, line = 0, len(src), 1
     stack = []
@@ -22,6 +47,27 @@ def scan(src):
             line += 1
             i += 1
             continue
+        # تعبير نمطي: يتخطّاه كاملاً حتى لا تُقرأ علاماته كنصوص
+        if c == "/" and i + 1 < n and src[i + 1] not in "/*" and _regex_allowed(src, i):
+            j, in_class = i + 1, False
+            while j < n:
+                if src[j] == BACKSLASH:
+                    j += 2
+                    continue
+                if src[j] == "[":
+                    in_class = True
+                elif src[j] == "]":
+                    in_class = False
+                elif src[j] == "/" and not in_class:
+                    break
+                elif src[j] == "\n":
+                    break
+                j += 1
+            if j < n and src[j] == "/":
+                i = j + 1
+                while i < n and src[i].isalpha():
+                    i += 1
+                continue
         if c == "/" and i + 1 < n and src[i + 1] == "/":
             while i < n and src[i] != "\n":
                 i += 1

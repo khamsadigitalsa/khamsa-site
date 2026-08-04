@@ -22,6 +22,17 @@
     color:var(--grey);font-size:.85rem;flex-wrap:wrap}
   .pay-chip{background:var(--teal-soft);border-radius:8px;padding:4px 12px;font-weight:700;color:var(--teal-deep)}
   .trust{text-align:center;color:var(--grey);font-size:.82rem;margin-top:12px;line-height:1.9}
+  .code-row{display:flex;gap:8px;align-items:stretch}
+  .code-row input{flex:1;text-transform:uppercase}
+  .code-row .btn{white-space:nowrap;padding-inline:18px}
+  .code-msg{min-height:20px;margin:6px 0 0;font-size:.88rem;font-weight:700}
+  .code-msg.ok{color:#1F6E6B}
+  .code-msg.err{color:#B3261E}
+  .was{text-decoration:line-through;opacity:.55;font-weight:400;margin-inline-start:8px;font-size:.9rem}
+  .badge-off{background:#C9A227;color:#3a2c00;border-radius:99px;padding:2px 10px;
+    font-size:.78rem;font-weight:800;margin-inline-start:8px}
+  .dl-item{background:#F2F7F6;border-radius:12px;padding:12px 16px;margin:10px 0;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -33,10 +44,20 @@
     <h2>📧 إيميلك (توصلك عليه الملفات فوراً)</h2>
     <label for="co-email">الإيميل</label>
     <input type="email" id="co-email" placeholder="you@email.com" required autocomplete="email">
+
+    <label for="co-code" style="margin-top:14px">كود الخصم (اختياري)</label>
+    <div class="code-row">
+      <input type="text" id="co-code" placeholder="مثال: WELCOME20" autocomplete="off"
+             inputmode="latin" maxlength="24">
+      <button class="btn btn-ghost" id="co-apply" type="button">تطبيق</button>
+    </div>
+    <p class="code-msg" id="co-code-msg"></p>
+
     <div class="row-actions">
       <button class="btn btn-primary" id="co-continue">متابعة للدفع الآمن 🔒</button>
     </div>
     <p class="result err" id="co-msg"></p>
+    <div id="co-files"></div>
     <div class="pays">
       <span class="pay-chip">مدى</span>
       <span class="pay-chip">Apple Pay</span>
@@ -78,13 +99,80 @@ const key = new URLSearchParams(location.search).get("p");
 const product = PRODUCTS[key];
 const box = document.getElementById("co-product");
 
+// حالة الخصم — النسخة الموثوقة منها في السيرفر دائماً؛ هذه للعرض فقط
+let discount = { code: "", percent: 0, price: product ? product.price : 0, free: false };
+
+function renderProduct() {
+  if (!product) return;
+  const off = discount.percent > 0;
+  box.innerHTML = '<img src="/products/' + product.img + '" alt="">' +
+    '<div><h1>' + product.name + '</h1><div class="price">' +
+      (discount.free
+        ? '<b style="color:#1F6E6B">مجاني</b><span class="was">' + product.price + ' ر.س</span>'
+        : '<b>' + discount.price + '</b> ر.س' +
+          (off ? '<span class="was">' + product.price + ' ر.س</span>' : '')) +
+      (off ? '<span class="badge-off">خصم ' + discount.percent + '%</span>' : '') +
+      '<div style="font-size:.85rem;color:var(--grey);margin-top:2px">' +
+        (discount.free ? 'تحميل فوري — بدون دفع' : 'تحميل فوري بعد الدفع') +
+      '</div></div></div>';
+}
+
 if (!product) {
   box.innerHTML = "<div><h1>المنتج غير موجود</h1><p><a href='/' style='color:var(--teal)'>ارجع للمتجر واختر منتجاً</a></p></div>";
   document.getElementById("email-step").style.display = "none";
 } else {
-  box.innerHTML = '<img src="/products/' + product.img + '" alt="">' +
-    '<div><h1>' + product.name + '</h1><div class="price"><b>' + product.price + '</b> ر.س — تحميل فوري بعد الدفع</div></div>';
+  renderProduct();
 }
+
+function setContinueLabel() {
+  const btn = document.getElementById("co-continue");
+  btn.textContent = discount.free ? "احصل على ملفاتك مجاناً 🎁" : "متابعة للدفع الآمن 🔒";
+}
+
+// تطبيق الكود — التحقق يتم في السيرفر، والمتصفح يعرض النتيجة فقط
+document.getElementById("co-apply").addEventListener("click", async () => {
+  const input = document.getElementById("co-code");
+  const msg = document.getElementById("co-code-msg");
+  const btn = document.getElementById("co-apply");
+  const code = input.value.trim().toUpperCase();
+  input.value = code;
+
+  if (!code) {
+    discount = { code: "", percent: 0, price: product.price, free: false };
+    msg.textContent = ""; msg.className = "code-msg";
+    renderProduct(); setContinueLabel();
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = "..";
+  try {
+    const r = await fetch("/api/check-discount", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code, productKey: key })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      discount = { code: d.code, percent: d.percent, price: d.price, free: d.free };
+      msg.textContent = d.free
+        ? "🎁 خصم 100% — المنتج مجاني بالكامل"
+        : "✅ تم تطبيق خصم " + d.percent + "% — تدفع " + d.price + " ر.س بدل " + d.original;
+      msg.className = "code-msg ok";
+    } else {
+      discount = { code: "", percent: 0, price: product.price, free: false };
+      msg.textContent = "✕ " + (d.reason || d.error || "الكود غير صحيح");
+      msg.className = "code-msg err";
+    }
+  } catch (e) {
+    msg.textContent = "تعذّر التحقق من الكود"; msg.className = "code-msg err";
+  }
+  renderProduct(); setContinueLabel();
+  btn.disabled = false; btn.textContent = "تطبيق";
+});
+
+document.getElementById("co-code").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); document.getElementById("co-apply").click(); }
+});
 
 document.getElementById("co-continue").addEventListener("click", async () => {
   const btn = document.getElementById("co-continue");
@@ -98,17 +186,48 @@ document.getElementById("co-continue").addEventListener("click", async () => {
 
   // بديل مضمون: مهما صار، العميل يقدر يكمل طلبه بواتساب
   const wa = "https://wa.me/" + WHATSAPP + "?text=" +
-    encodeURIComponent("مرحباً 👋 أبغى أطلب: " + product.name + " (" + product.price + " ر.س)\nإيميلي: " + email);
+    encodeURIComponent("مرحباً 👋 أبغى أطلب: " + product.name + " (" + discount.price + " ر.س)" +
+      (discount.code ? "\nكود الخصم: " + discount.code + " (" + discount.percent + "%)" : "") +
+      "\nإيميلي: " + email);
   const fallback = function (reason) {
     msg.innerHTML = reason +
       '<br><a class="btn btn-wa" style="margin-top:10px" href="' + wa + '" target="_blank" rel="noopener">أكمل الطلب عبر واتساب 💬</a>';
   };
 
   try {
+    // خصم 100%: لا توجد فاتورة تُدفع — مسار مستقل يسلّم الملفات مباشرة
+    if (discount.free) {
+      btn.textContent = "جاري تجهيز ملفاتك..";
+      const r = await fetch("/api/free-order", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ productKey: key, email: email, code: discount.code })
+      });
+      const d = await r.json().catch(function () { return {}; });
+      if (r.ok && d.ok) {
+        document.getElementById("co-msg").textContent = "";
+        document.getElementById("co-files").innerHTML =
+          '<div style="text-align:center;margin-top:18px"><div style="font-size:2.4rem">🎉</div>' +
+          '<h2 style="margin:6px 0">ملفاتك جاهزة!</h2>' +
+          '<p style="color:var(--grey);font-size:.9rem">وأرسلنا نسخة إلى <b dir="ltr">' + email + '</b></p></div>' +
+          d.links.map(function (l) {
+            return '<div class="dl-item"><b>📄 ' + l.label + '</b>' +
+                   '<a class="btn btn-sm" href="' + l.url + '">⬇️ تحميل</a></div>';
+          }).join("") +
+          '<p style="color:var(--grey);font-size:.82rem;text-align:center">الروابط صالحة 7 أيام — حمّلها واحفظها.</p>';
+        document.getElementById("co-continue").style.display = "none";
+        document.getElementById("co-apply").disabled = true;
+        return;
+      }
+      fallback(d.error || "تعذّر تجهيز الملفات");
+      btn.disabled = false; setContinueLabel();
+      return;
+    }
+
     const r = await fetch("/api/pay-start", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ productKey: key, email: email })
+      body: JSON.stringify({ productKey: key, email: email, code: discount.code })
     });
     const d = await r.json().catch(function () { return {}; });
     if (r.ok && d.url) { location.href = d.url; return; }
@@ -116,7 +235,7 @@ document.getElementById("co-continue").addEventListener("click", async () => {
   } catch (e) {
     fallback("تعذر الاتصال بصفحة الدفع");
   }
-  btn.disabled = false; btn.textContent = "متابعة للدفع الآمن 🔒";
+  btn.disabled = false; setContinueLabel();
 });
 </script>
 </body>
