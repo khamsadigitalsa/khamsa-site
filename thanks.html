@@ -58,7 +58,25 @@ async function run(){
         '<a class="btn btn-ghost" href="' + waHelp("مرحباً، واجهت مشكلة في الدفع — رقم العملية: " + ref) + '">كلمنا واتساب</a></p>';
       return;
     }
-    let list = d.links.map(l =>
+
+    // الدفع نجح لكن تجهيز الملفات تعثّر — لا يجوز إيهام العميل أن دفعته فشلت
+    if (d.paid && !d.ok) {
+      content.innerHTML =
+        '<div class="th-icon">✅</div><h1>تم الدفع بنجاح</h1>' +
+        '<p>طلبك: <b>' + (d.name || "") + '</b></p>' +
+        '<p style="background:#F5EBD3;color:#8a6d14;border-radius:10px;padding:14px 16px;text-align:right">' +
+        'واجهنا تأخيراً بسيطاً في تجهيز روابط التحميل. <b>دفعتك محفوظة ومسجلة</b>، ' +
+        'وبنرسل لك الملفات على إيميلك خلال دقائق.<br>' +
+        'لو استعجلت، كلمنا واتساب ومعك رقم الطلب وبنرسلها فوراً.</p>' +
+        '<p style="font-size:.85rem;color:var(--grey)">رقم طلبك: <b dir="ltr">' + (d.orderRef || ref) + '</b></p>' +
+        '<p><a class="btn btn-primary" href="' +
+          waHelp("مرحباً، دفعت طلبي ولم تصلني الملفات. رقم الطلب: " + (d.orderRef || ref) +
+                 " — المنتج: " + (d.name || "")) + '">📲 كلمنا واتساب الآن</a></p>' +
+        '<p><a class="btn btn-ghost" href="javascript:location.reload()">🔄 أعد المحاولة</a></p>';
+      return;
+    }
+
+    let list = (d.links || []).map(l =>
       '<div class="dl-item"><b>📄 ' + l.label + '</b>' +
       '<a class="btn btn-sm" href="' + l.url + '">⬇️ تحميل</a></div>').join("");
     content.innerHTML =

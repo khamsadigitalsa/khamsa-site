@@ -81,9 +81,11 @@
       </select>
       <div class="row-actions">
         <button class="btn btn-gold" id="dl-btn">🚚 تسليم الطلب الآن</button>
+        <button class="btn btn-ghost" id="chk-btn">🔍 فحص جاهزية الملفات</button>
       </div>
       <p class="hint">يرسل للعميل إيميل «شكراً لطلبك» + روابط تحميل آمنة لكل ملفات المنتج/الحزمة (صالحة 7 أيام). يتطلب رفع الملفات مرة واحدة في Supabase Storage — راجع الدليل.</p>
       <p class="result" id="dl-msg"></p>
+      <p class="result" id="chk-msg"></p>
     </div>
 
     <div class="panel">
@@ -189,6 +191,33 @@ document.getElementById("dl-btn").addEventListener("click", async () => {
     msg.textContent = "تعذر الاتصال"; msg.className = "result err";
   }
   btn.disabled = false; btn.textContent = "🚚 تسليم الطلب الآن";
+});
+
+// يقارن ملفات المنتجات بما هو مرفوع فعلاً — شغّله قبل أي حملة إعلانية
+document.getElementById("chk-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("chk-btn");
+  const msg = document.getElementById("chk-msg");
+  btn.disabled = true; btn.textContent = "يفحص..";
+  msg.textContent = ""; msg.className = "result";
+  try {
+    const d = await (await fetch("/api/check-files")).json();
+    if (d.error) {
+      msg.textContent = d.error; msg.className = "result err";
+    } else if (d.ok) {
+      msg.textContent = "✅ كل الملفات جاهزة (" + d.present + "/" + d.total + ") — التسليم يعمل.";
+      msg.className = "result ok";
+    } else {
+      const broken = (d.brokenProducts || []).map(p => p.name).join("، ");
+      msg.innerHTML = "⚠️ ناقص " + d.missing.length + " ملف من أصل " + d.total +
+        ":<br><b dir='ltr'>" + d.missing.join("، ") + "</b>" +
+        (broken ? "<br>منتجات لا يمكن تسليمها الآن: " + broken : "") +
+        "<br><span style='opacity:.8'>" + d.hint + "</span>";
+      msg.className = "result err";
+    }
+  } catch (e) {
+    msg.textContent = "تعذر الاتصال"; msg.className = "result err";
+  }
+  btn.disabled = false; btn.textContent = "🔍 فحص جاهزية الملفات";
 });
 
 document.getElementById("send-btn").addEventListener("click", async () => {

@@ -62,7 +62,18 @@ async function signUrl(path) {
   });
   if (!r.ok) {
     const t = await r.text();
-    throw new Error("sign failed for " + path + ": " + r.status + " " + t);
+    // أشيع سبب: الملف لم يُرفع أصلاً إلى مخزن Supabase، فالتوقيع يفشل بـ NoSuchKey.
+    // نوضّح السبب والحل بدل ترك رسالة البوابة الخام.
+    if (/NoSuchKey|not_found/i.test(t)) {
+      throw new Error(
+        "الملف «" + path + "» غير موجود في مخزن Supabase (bucket: files). " +
+        "ارفعه أولاً: python tools/upload_files.py — أو من لوحة Supabase → Storage → files."
+      );
+    }
+    if (r.status === 400 && /Invalid JWT|invalid signature/i.test(t)) {
+      throw new Error("مفتاح SUPABASE_SERVICE_KEY غير صحيح أو منتهي — حدّثه في متغيّرات Vercel.");
+    }
+    throw new Error("تعذّر توقيع رابط «" + path + "»: " + r.status + " " + t.slice(0, 160));
   }
   const d = await r.json();
   return process.env.SUPABASE_URL + "/storage/v1" + d.signedURL;

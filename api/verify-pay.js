@@ -88,29 +88,59 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: "مبلغ الدفعة لا يطابق سعر المنتج — تواصل معنا" });
     }
 
-    // منع التكرار: يُسجَّل الطلب مرة واحدة فقط
-    const ins = await sbFetch("orders?on_conflict=id", {
+    // يُسجَّل الطلب أولاً حتى لو تعثّر التسليم — الدفعة حصلت ولا يجوز ضياع أثرها
+    await sbFetch("orders?on_conflict=id", {
       method: "POST",
-      headers: { Prefer: "resolution=ignore-duplicates,return=representation" },
+      headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
       body: JSON.stringify({
         id: result.paymentId, email: result.email,
         product: result.productKey, amount: Math.round(result.amount * 100),
       }),
     });
-    const inserted = ins.ok ? await ins.json() : [];
-    const isNewOrder = Array.isArray(inserted) && inserted.length > 0;
 
-    let links, emailed = false;
-    if (isNewOrder && result.email) {
-      const out = await deliverProduct(result.email, result.productKey);
-      links = out.links;
-      emailed = true;
-      await addSubscriber(result.email, "");
-    } else {
-      links = await signLinks(result.productKey);
+    // هل سُلّم هذا الطلب من قبل؟ العمود delivered يمنع تكرار الإيميل،
+    // ويسمح بإعادة المحاولة لو فشل التسليم في المرة الأولى
+    let alreadyDelivered = false;
+    try {
+      const q = await sbFetch("orders?id=eq." + encodeURIComponent(result.paymentId) + "&select=delivered");
+      if (q.ok) {
+        const rowsFound = await q.json();
+        alreadyDelivered = Array.isArray(rowsFound) && rowsFound[0] && rowsFound[0].delivered === true;
+      }
+    } catch (e) { /* العمود قد لا يكون موجوداً بعد — نعامله كغير مُسلَّم */ }
+
+    // التسليم منفصل عن التحقق: فشله لا يعني أن الدفع فشل
+    let links = null, emailed = false, deliveryError = null;
+    try {
+      if (!alreadyDelivered && result.email) {
+        const out = await deliverProduct(result.email, result.productKey);
+        links = out.links;
+        emailed = true;
+        await addSubscriber(result.email, "");
+        await sbFetch("orders?id=eq." + encodeURIComponent(result.paymentId), {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ delivered: true }),
+        }).catch(() => {});
+      } else {
+        links = await signLinks(result.productKey);
+      }
+    } catch (e) {
+      console.error("DELIVERY FAILED for paid order", result.paymentId, e);
+      deliveryError = e.message || String(e);
     }
 
-    return res.status(200).json({ ok: true, name: product.name, links, emailed, email: result.email });
+    // الدفع تم بنجاح في كل الحالات التي تصل هنا — نقولها صراحةً للعميل
+    return res.status(200).json({
+      ok: !deliveryError,
+      paid: true,
+      name: product.name,
+      links: links || [],
+      emailed,
+      email: result.email,
+      orderRef: result.paymentId,
+      deliveryError: deliveryError ? deliveryError.slice(0, 200) : null,
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: "خطأ أثناء التحقق: " + e.message.slice(0, 200) });
