@@ -112,8 +112,10 @@ const WHATSAPP = "966548133555";              // رقم واتساب المتج�
 const ORDER_PAGE = "https://waslati.com/khamsa"; // صفحة الطلب/الدفع
 // ==========================================================
 
-// فعّل الدفع الآلي: بعد تفعيل ميسر ولصق مفتاحك في checkout.html — غيّر false إلى true
-const CHECKOUT_READY = false;
+// مفتاح إيقاف الطوارئ للدفع الآلي.
+//   true  = زر «اطلب الآن» يفتح صفحة الدفع (إيميل + كود خصم + دفع آمن)
+//   false = يحوّل كل الأزرار لواتساب — استخدمه فقط إذا تعطّلت بوابة الدفع
+const CHECKOUT_READY = true;
 
 const PRODUCTS = [
   // ===== للكبار: 29 / 39 / 49 / 79 =====
@@ -161,10 +163,11 @@ function render(filter){
       '<div class="card-body"><h3>' + p.name + '</h3><p>' + p.desc + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
       (function(){
-        // الأولوية: الدفع الآلي بميسر ← رابط وصلاتي اليدوي ← واتساب
-        if (CHECKOUT_READY && p.key) return '<a class="btn btn-sm" href="/checkout?p=' + p.key + '">اشترِ الآن 🛒</a>';
-        if (p.buy) return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + p.buy + '">اشترِ الآن 🛒</a>';
-        return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب الآن</a>';
+        // الأولوية: صفحة الدفع ← رابط خارجي يدوي ← واتساب (احتياطي أخير فقط)
+        // صفحة الدفع تُفتح في نفس التبويب — فتحها في تبويب جديد يربك العميل ويكسر زر الرجوع
+        if (CHECKOUT_READY && p.key) return '<a class="btn btn-sm" href="/checkout?p=' + p.key + '">اطلب الآن 🛒</a>';
+        if (p.buy) return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + p.buy + '">اطلب الآن 🛒</a>';
+        return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب عبر واتساب</a>';
       })() + '</div></div>';
     grid.appendChild(card);
   });
