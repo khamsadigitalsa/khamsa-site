@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   if (!T.enabled()) return res.status(200).json({ ignored: "tamara off" });
 
   // بدون مفتاح إشعارات لا نثق بأي نداء — أي أحد يعرف الرابط يستطيع طلب تسليم مجاني
-  if (!process.env.TAMARA_NOTIFICATION_KEY) {
+  if (!T.notificationKey()) {
     console.error("tamara webhook: TAMARA_NOTIFICATION_KEY غير مضبوط — رُفض النداء");
     return res.status(503).json({ error: "webhook not configured" });
   }

@@ -111,13 +111,22 @@ module.exports = async (req, res) => {
   }
 
   // ── تمارا ─────────────────────────────────────────────
-  const tmToken = has(env.TAMARA_API_TOKEN);
+  // لا نطبع المفتاح أبداً — فقط طوله وهل التصق به فراغ عند اللصق،
+  // لأن الفراغ أشيع سبب لـ 401 ولا يظهر بالعين في خانة Vercel
+  const tmRaw = String(env.TAMARA_API_TOKEN || "");
+  const tmToken = has(tmRaw);
+  const tmDirty = tmToken && tmRaw !== tmRaw.trim();
   add("مفتاح تمارا", tmToken,
-      tmToken ? "مضبوط" : "غير مضبوط — زر التقسيط مخفي (اختياري)",
-      "TAMARA_API_TOKEN من لوحة تمارا → General settings → API Tokens");
+      tmToken
+        ? "مضبوط — " + tmRaw.trim().length + " حرفاً" +
+          (tmDirty ? " ⚠️ وفيه فراغ/سطر زائد لُصق معه" : "")
+        : "غير مضبوط — زر التقسيط مخفي (اختياري)",
+      tmDirty
+        ? "الموقع ينظّفه تلقائياً، لكن الأنظف تعيد لصقه في Vercel بلا سطر جديد"
+        : "TAMARA_API_TOKEN من لوحة تمارا → General settings → API Tokens");
 
   if (tmToken) {
-    const mode = (env.TAMARA_MODE || "live").trim();
+    const mode = (env.TAMARA_MODE || "live").trim().toLowerCase() || "live";
     const tmBase = mode === "sandbox"
       ? "https://api-sandbox.tamara.co" : "https://api.tamara.co";
     // نجرّب نفس صيغ الاستعلام التي يجرّبها الموقع، ونعرض ردّ تمارا الحرفي
@@ -132,7 +141,7 @@ module.exports = async (req, res) => {
       if (done) break;
       try {
         const r = await fetch(tmBase + "/checkout/payment-types" + q, {
-          headers: { Authorization: "Bearer " + env.TAMARA_API_TOKEN, accept: "application/json" },
+          headers: { Authorization: "Bearer " + tmRaw.trim(), accept: "application/json" },
         });
         const text = await r.text();
         let d = null;
@@ -151,10 +160,18 @@ module.exports = async (req, res) => {
       }
     }
     if (!done) {
+      // 401 يعني «المفتاح مرفوض»، وله سببان فقط عملياً: فراغ لُصق معه،
+      // أو مفتاح من حساب غير الذي نناديه. نوجّه للسبب المرجّح لا للاثنين معاً.
+      const is401 = /HTTP 40[13]/.test(detail);
       add("الاتصال بتمارا", false,
           "الوضع " + mode + " (" + tmBase + ") — " + (detail || "بلا تفاصيل"),
-          "لو الردّ 401/403 فالمفتاح لا يخصّ هذا الوضع: أضف TAMARA_MODE=sandbox " +
-          "لمفاتيح التجربة، أو احذفه واستخدم مفتاح الحساب الحقيقي");
+          !is401
+            ? "عطل مؤقت غالباً — أعد الفحص بعد دقيقة"
+            : tmDirty
+              ? "المفتاح لُصق ومعه فراغ — أعد نسخه من لوحة تمارا والصقه سطراً واحداً"
+              : "المفتاح مرفوض من " + mode + ": انسخه من جديد بزر النسخ في لوحة تمارا " +
+                "(لا تكتبه يدوياً)، وإن تكرر الرفض اضغط Generate new token. " +
+                "لا تضف TAMARA_MODE=sandbox إلا إذا كان المفتاح من حساب تجربة منفصل");
     }
 
     add("مفتاح إشعارات تمارا", has(env.TAMARA_NOTIFICATION_KEY),

@@ -10,13 +10,22 @@
 const crypto = require("crypto");
 
 function base() {
-  return process.env.TAMARA_MODE === "sandbox"
+  return mode() === "sandbox"
     ? "https://api-sandbox.tamara.co"
     : "https://api.tamara.co";
 }
 
+// خانة القيمة في Vercel صندوق نص متعدد الأسطر، فاللصق يجرّ معه غالباً سطراً
+// جديداً أو مسافة. بدون التنظيف تصير الترويسة "Bearer <مفتاح>\n" وترد تمارا
+// بـ 401 Invalid credentials رغم أن المفتاح نفسه صحيح تماماً.
+const clean = (v) => String(v == null ? "" : v).trim();
+
+function token() { return clean(process.env.TAMARA_API_TOKEN); }
+function mode() { return clean(process.env.TAMARA_MODE).toLowerCase(); }
+function notificationKey() { return clean(process.env.TAMARA_NOTIFICATION_KEY); }
+
 function enabled() {
-  return Boolean(process.env.TAMARA_API_TOKEN && String(process.env.TAMARA_API_TOKEN).trim());
+  return Boolean(token());
 }
 
 const CURRENCY = "SAR";
@@ -27,7 +36,7 @@ async function tamara(path, options) {
   const r = await fetch(base() + path, {
     method: opts.method || "GET",
     headers: {
-      Authorization: "Bearer " + process.env.TAMARA_API_TOKEN,
+      Authorization: "Bearer " + token(),
       "Content-Type": "application/json",
       accept: "application/json",
     },
@@ -161,10 +170,10 @@ async function settle(order) {
 
 // تمارا توقّع الويبهوك بـ JWT (HS256) بمفتاح الإشعارات، في ترويسة tamaraToken.
 // بدون التحقق منه يستطيع أي أحد استدعاء نقطتنا ويطلب تسليم ملفات مجاناً.
-function verifyWebhook(token) {
-  const secret = process.env.TAMARA_NOTIFICATION_KEY;
+function verifyWebhook(jwt) {
+  const secret = notificationKey();
   if (!secret) return null;
-  const parts = String(token || "").split(".");
+  const parts = String(jwt || "").split(".");
   if (parts.length !== 3) return null;
   const expected = crypto.createHmac("sha256", secret)
     .update(parts[0] + "." + parts[1]).digest("base64url");
@@ -186,7 +195,7 @@ function normalizePhone(v) {
 }
 
 module.exports = {
-  base, enabled, money, tamara, paymentMethods, pickMethod,
+  base, mode, token, notificationKey, enabled, money, tamara, paymentMethods, pickMethod,
   createCheckout, getOrder, authorise, capture, settle,
   verifyWebhook, normalizePhone, CURRENCY,
 };
