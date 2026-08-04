@@ -51,8 +51,29 @@ async function tamara(path, options) {
 // وسائل الدفع المتاحة وحدودها — تختلف من تاجر لآخر، فنقرأها من تمارا لا نفترضها.
 // أغلب منتجاتنا 19 ر.س وقد تكون تحت الحد الأدنى، فالواجهة تحتاج هذه الأرقام
 // لتخفي زر تمارا بدل أن تُظهره ثم يفشل عند الضغط.
+// صيغة الاستعلام تختلف بين إصدارات تمارا: بعضها يرفض currency وبعضها يطلب
+// order_value. نجرّب الصيغ بالترتيب بدل أن نراهن على واحدة ونعطّل التقسيط كله.
+const TYPE_QUERIES = [
+  "?country=SA&currency=" + CURRENCY,
+  "?country=SA",
+  "?country=SA&order_value=100&currency=" + CURRENCY,
+];
+
 async function paymentMethods() {
-  const list = await tamara("/checkout/payment-types?country=SA&currency=" + CURRENCY);
+  let list = null, lastErr = null;
+  for (const q of TYPE_QUERIES) {
+    try {
+      list = await tamara("/checkout/payment-types" + q);
+      break;
+    } catch (e) {
+      lastErr = e;
+      // 4xx = الصيغة مرفوضة، جرّب التالية. أي خطأ آخر (شبكة/مصادقة) لا تُصلحه الصيغة
+      if (!e.status || e.status < 400 || e.status >= 500) throw e;
+      if (e.status === 401 || e.status === 403) throw e;
+    }
+  }
+  if (!list) throw lastErr || new Error("tamara payment-types: no response");
+
   const arr = Array.isArray(list) ? list : (list.data || []);
   const out = [];
   arr.forEach((m) => {

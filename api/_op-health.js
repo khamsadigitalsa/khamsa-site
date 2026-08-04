@@ -117,21 +117,44 @@ module.exports = async (req, res) => {
       "TAMARA_API_TOKEN من لوحة تمارا → General settings → API Tokens");
 
   if (tmToken) {
-    const tmBase = env.TAMARA_MODE === "sandbox"
+    const mode = (env.TAMARA_MODE || "live").trim();
+    const tmBase = mode === "sandbox"
       ? "https://api-sandbox.tamara.co" : "https://api.tamara.co";
-    try {
-      const r = await fetch(tmBase + "/checkout/payment-types?country=SA&currency=SAR", {
-        headers: { Authorization: "Bearer " + env.TAMARA_API_TOKEN, accept: "application/json" },
-      });
-      const d = await r.json().catch(() => null);
-      const list = Array.isArray(d) ? d : (d && d.data) || [];
-      add("الاتصال بتمارا", r.ok && list.length > 0,
-          r.ok && list.length
-            ? list.length + " وسيلة دفع متاحة"
-            : "تمارا رفضت المفتاح (" + r.status + ")",
-          r.ok ? "" : "تأكد أن المفتاح يخص نفس الوضع (TAMARA_MODE=sandbox أو اتركه فارغاً للحقيقي)");
-    } catch (e) {
-      add("الاتصال بتمارا", false, String(e.message || e).slice(0, 120), "");
+    // نجرّب نفس صيغ الاستعلام التي يجرّبها الموقع، ونعرض ردّ تمارا الحرفي
+    // عند الفشل — بدونه يبقى «تعذّر الاتصال» بلا سبب يمكن التصرّف بناءً عليه
+    const queries = [
+      "?country=SA&currency=SAR",
+      "?country=SA",
+      "?country=SA&order_value=100&currency=SAR",
+    ];
+    let done = false, detail = "";
+    for (const q of queries) {
+      if (done) break;
+      try {
+        const r = await fetch(tmBase + "/checkout/payment-types" + q, {
+          headers: { Authorization: "Bearer " + env.TAMARA_API_TOKEN, accept: "application/json" },
+        });
+        const text = await r.text();
+        let d = null;
+        try { d = text ? JSON.parse(text) : null; } catch (e2) { /* ردّ غير JSON */ }
+        const list = Array.isArray(d) ? d : (d && d.data) || [];
+        if (r.ok && list.length) {
+          const limits = list.map(m => (m.name || "?") + " " +
+            ((m.min_limit || {}).amount || 0) + "–" + ((m.max_limit || {}).amount || 0)).join("، ");
+          add("الاتصال بتمارا", true, list.length + " وسيلة متاحة: " + limits, "");
+          done = true;
+        } else {
+          detail = "HTTP " + r.status + " — " + text.slice(0, 200);
+        }
+      } catch (e) {
+        detail = String(e.message || e).slice(0, 200);
+      }
+    }
+    if (!done) {
+      add("الاتصال بتمارا", false,
+          "الوضع " + mode + " (" + tmBase + ") — " + (detail || "بلا تفاصيل"),
+          "لو الردّ 401/403 فالمفتاح لا يخصّ هذا الوضع: أضف TAMARA_MODE=sandbox " +
+          "لمفاتيح التجربة، أو احذفه واستخدم مفتاح الحساب الحقيقي");
     }
 
     add("مفتاح إشعارات تمارا", has(env.TAMARA_NOTIFICATION_KEY),

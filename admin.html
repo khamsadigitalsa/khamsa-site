@@ -31,6 +31,12 @@
   .dc-scroll{overflow-x:auto}
   .soc-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
   .soc-grid label{display:block;font-size:.84rem;font-weight:700;margin:0 0 5px;color:var(--grey)}
+  .hc-row{border-bottom:1px solid var(--line);padding:10px 0}
+  .hc-row:last-child{border-bottom:none}
+  .hc-row b{font-size:.94rem}
+  .hc-detail{font-size:.85rem;color:var(--grey);word-break:break-word;line-height:1.7}
+  .hc-fix{font-size:.83rem;color:#8a6d14;background:#F5EBD3;border-radius:8px;
+    padding:7px 11px;margin-top:6px;line-height:1.7;word-break:break-word}
 </style>
 </head>
 <body>
@@ -108,6 +114,16 @@
       <p class="hint">يرسل للعميل إيميل «شكراً لطلبك» + روابط تحميل آمنة لكل ملفات المنتج/الحزمة (صالحة 7 أيام). يتطلب رفع الملفات مرة واحدة في Supabase Storage — راجع الدليل.</p>
       <p class="result" id="dl-msg"></p>
       <p class="result" id="chk-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h2>🩺 فحص الإعدادات</h2>
+      <p class="hint" style="margin-top:0">يفحص الدفع والتسليم والإيميل وتمارا، ويقول لك
+        أي متغيّر ناقص وكيف تصلحه. شغّله بعد أي تعديل في متغيّرات Vercel.</p>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="hc-btn">🩺 افحص الآن</button>
+      </div>
+      <div id="hc-list" style="margin-top:14px"></div>
     </div>
 
     <div class="panel">
@@ -322,6 +338,31 @@ document.getElementById("send-btn").addEventListener("click", async () => {
     msg.textContent = "تعذر الاتصال"; msg.className = "result err";
   }
   btn.disabled = false; btn.textContent = "إرسال";
+});
+
+/* ═══════════ فحص الإعدادات ═══════════ */
+document.getElementById("hc-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("hc-btn");
+  const box = document.getElementById("hc-list");
+  btn.disabled = true; btn.textContent = "يفحص..";
+  box.innerHTML = "";
+  try {
+    const d = await (await fetch("/api/admin?op=health")).json();
+    if (d.error) {
+      box.innerHTML = '<p class="result err">' + dcEsc(d.error) + '</p>';
+    } else {
+      box.innerHTML =
+        '<p class="result ' + (d.ok ? "ok" : "err") + '">' + dcEsc(d.summary) + '</p>' +
+        (d.checks || []).map(c =>
+          '<div class="hc-row"><b>' + (c.ok ? "✅" : "❌") + " " + dcEsc(c.name) + '</b>' +
+          '<div class="hc-detail">' + dcEsc(c.detail) + '</div>' +
+          (c.fix && !c.ok ? '<div class="hc-fix">🛠️ ' + dcEsc(c.fix) + '</div>' : '') +
+          '</div>').join("");
+    }
+  } catch (e) {
+    box.innerHTML = '<p class="result err">تعذر الاتصال</p>';
+  }
+  btn.disabled = false; btn.textContent = "🩺 افحص الآن";
 });
 
 /* ═══════════ حسابات التواصل ═══════════ */
