@@ -1,0 +1,11 @@
+# خمسة ديجيتال — تعليمات زواحف محركات البحث
+User-agent: *
+Allow: /
+
+# صفحات لا قيمة لها في البحث، وبعضها يكشف مسار الشراء أو لوحة المالك
+Disallow: /admin
+Disallow: /checkout
+Disallow: /thanks
+Disallow: /api/
+
+Sitemap: https://khamsa-site.vercel.app/sitemap.xml

@@ -3,12 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>خمسة ديجيتال — منتجات رقمية عربية</title>
-<meta name="description" content="متجر خمسة ديجيتال: بلانرات، كراسات أطفال تعليمية، ملفات إكسل وقوالب عربية أصيلة — تحميل فوري وتحديثات مجانية مدى الحياة.">
-<meta property="og:title" content="خمسة ديجيتال — منتجات رقمية عربية">
-<meta property="og:description" content="بلانرات وكراسات أطفال وملفات عربية أصيلة — تحميل فوري.">
-<meta property="og:image" content="/logo.png">
+<title>خمسة ديجيتال — كراسات أطفال وبلانرات عربية PDF | تحميل فوري</title>
+<meta name="description" content="متجر خمسة ديجيتال: كراسات تعليمية للأطفال، بلانرات عربية، ملفات إكسل وقوالب سيرة ذاتية — عربي أصيل، تحميل فوري بعد الدفع، وتحديثات مجانية مدى الحياة. الأسعار من 19 ريالاً.">
+<link rel="canonical" href="https://khamsa-site.vercel.app/">
+<meta name="theme-color" content="#14504E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="خمسة ديجيتال">
+<meta property="og:locale" content="ar_SA">
+<meta property="og:title" content="خمسة ديجيتال — كراسات أطفال وبلانرات عربية PDF">
+<meta property="og:description" content="كراسات تعليمية وبلانرات وملفات عربية أصيلة — تحميل فوري بعد الدفع.">
+<meta property="og:url" content="https://khamsa-site.vercel.app/">
+<!-- الروابط المطلقة إلزامية هنا: واتساب وتويتر لا يقرآن المسار النسبي -->
+<meta property="og:image" content="https://khamsa-site.vercel.app/logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="خمسة ديجيتال — منتجات رقمية عربية">
+<meta name="twitter:description" content="كراسات تعليمية وبلانرات وملفات عربية أصيلة — تحميل فوري.">
+<meta name="twitter:image" content="https://khamsa-site.vercel.app/logo.png">
 <link rel="icon" type="image/png" href="/favicon.png">
+
+<!-- توثيق ملكية الموقع في Google Search Console:
+     Search Console → إضافة موقع → طريقة «علامة HTML» → انسخ قيمة content
+     وألصقها هنا بعد إزالة علامتَي التعليق.
+<meta name="google-site-verification" content="ضع-القيمة-هنا"> -->
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "OnlineStore",
+      "@id": "https://khamsa-site.vercel.app/#store",
+      "name": "خمسة ديجيتال",
+      "url": "https://khamsa-site.vercel.app/",
+      "logo": "https://khamsa-site.vercel.app/logo.png",
+      "image": "https://khamsa-site.vercel.app/logo.png",
+      "description": "متجر سعودي لمنتجات رقمية عربية أصيلة: كراسات تعليمية للأطفال وبلانرات وملفات إنتاجية.",
+      "email": "khamsa.digital.sa@gmail.com",
+      "areaServed": { "@type": "Country", "name": "SA" },
+      "currenciesAccepted": "SAR",
+      "paymentAccepted": "مدى، آبل باي، فيزا، ماستركارد",
+      "sameAs": []
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://khamsa-site.vercel.app/#website",
+      "url": "https://khamsa-site.vercel.app/",
+      "name": "خمسة ديجيتال",
+      "inLanguage": "ar-SA",
+      "publisher": { "@id": "https://khamsa-site.vercel.app/#store" }
+    }
+  ]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -206,11 +252,15 @@ function render(filter){
   PRODUCTS.filter(p => filter === "all" || p.cat === filter).forEach(p => {
     const card = document.createElement("div");
     card.className = "card" + (p.cat === "bundle" ? " bundle" : "");
+    // الصورة والعنوان يربطان لصفحة المنتج المستقلة، لا لصفحة الدفع.
+    // صفحة الدفع محجوبة في robots.txt، فلولا هذا الرابط لما وصل قوقل
+    // إلى صفحات المنتجات أصلاً ولا فهرسها.
+    const href = '/p/' + p.key;
     card.innerHTML =
-      (p.img ? '<div class="card-img"><img loading="lazy" src="/products/' + p.img + '" alt="' + esc(p.name) + '"></div>'
+      (p.img ? '<a class="card-img" href="' + href + '"><img loading="lazy" src="/products/' + p.img + '" alt="' + esc(p.name) + '" width="400" height="400"></a>'
              : '<div class="card-img bundle-art"><span>🎁</span></div>') +
       (p.tag ? '<span class="tag">' + esc(p.tag) + '</span>' : '') +
-      '<div class="card-body"><h3>' + esc(p.name) + '</h3><p>' + esc(p.desc) + '</p>' +
+      '<div class="card-body"><h3><a href="' + href + '">' + esc(p.name) + '</a></h3><p>' + esc(p.desc) + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
       (function(){
         // الأولوية: صفحة الدفع ← رابط خارجي يدوي ← واتساب (احتياطي أخير فقط)
@@ -322,6 +372,41 @@ setTimeout(revealAll, 2000);
 const nav = document.getElementById("nav");
 addEventListener("scroll", () => nav.classList.toggle("stuck", scrollY > 8), { passive: true });
 
+// قائمة المنتجات لمحركات البحث — تُبنى من نفس مصفوفة PRODUCTS فلا تتقادم.
+// الأسعار هنا هي ما قد يظهر في نتائج قوقل، فأي اختلاف عن الصفحة يُعدّ تضليلاً.
+(function productListLd(){
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "منتجات خمسة ديجيتال",
+    "numberOfItems": PRODUCTS.length,
+    "itemListElement": PRODUCTS.map((p, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "item": {
+        "@type": "Product",
+        "name": p.name,
+        "description": p.desc,
+        "image": location.origin + "/products/" + p.img,
+        "url": location.origin + "/p/" + p.key,
+        "sku": p.key,
+        "brand": { "@type": "Brand", "name": "خمسة ديجيتال" },
+        "offers": {
+          "@type": "Offer",
+          "price": String(p.price),
+          "priceCurrency": "SAR",
+          "availability": "https://schema.org/InStock",
+          "url": location.origin + "/p/" + p.key
+        }
+      }
+    }))
+  };
+  const el = document.createElement("script");
+  el.type = "application/ld+json";
+  el.textContent = JSON.stringify(ld);
+  document.head.appendChild(el);
+})();
+
 document.getElementById("year").textContent = new Date().getFullYear();
 applyLinks();
 renderSocials({});
@@ -334,6 +419,20 @@ fetch("/api/settings").then(r => r.json()).then(s => {
   if (s && typeof s.orderPage === "string") ORDER_PAGE = s.orderPage;
   applyLinks();
   renderSocials((s && s.social) || {});
+
+  // sameAs يربط المتجر بحساباته الرسمية في نظر قوقل — يقوّي ظهور
+  // بطاقة المعرفة ويمنع انتحال الاسم. نبنيه من نفس الحسابات المحفوظة.
+  const urls = Object.values((s && s.social) || {}).filter(Boolean);
+  if (urls.length) {
+    const el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@id": location.origin + "/#store",
+      "sameAs": urls
+    });
+    document.head.appendChild(el);
+  }
 }).catch(function () {});
 
 fetch("/api/tamara?op=config").then(r => r.json()).then(d => {
