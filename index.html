@@ -13,10 +13,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+<script>
+// حركة الظهور تخفي العناصر أولاً ثم تُظهرها. هذا الصف يشترط وجود جافاسكربت
+// عامل قبل أي إخفاء — فلو تعطّل السكربت أو حُجب، تظهر الصفحة كاملة كالمعتاد.
+document.documentElement.className += " has-js";
+</script>
 </head>
 <body>
 
-<nav class="nav">
+<nav class="nav" id="nav">
   <div class="wrap nav-inner">
     <a href="#" class="brand"><img src="/logo.png" alt="خمسة ديجيتال"><span>خمسة <b>ديجيتال</b></span></a>
     <div class="nav-links">
@@ -30,7 +35,7 @@
 
 <header class="hero">
   <div class="wrap hero-inner">
-    <div class="hero-text">
+    <div class="hero-text reveal">
       <span class="badge">✨ مصمم بالعربي.. للعربي</span>
       <h1>منتجات رقمية عربية<br><em>تحمّلها الحين</em>.. وتستخدمها للأبد</h1>
       <p>بلانرات ذكية، كراسات تعليمية لأطفالك، ملفات ميزانية وقوالب احترافية — كل شي عربي أصيل، تحميل فوري، وتحديثات مجانية مدى الحياة.</p>
@@ -44,7 +49,7 @@
         <div><b>فوري</b><span>تحميل مباشر</span></div>
       </div>
     </div>
-    <div class="hero-art">
+    <div class="hero-art reveal">
       <img src="/products/p01.jpg" alt="البلانر التفاعلي" class="fl fl1">
       <img src="/products/p05.jpg" alt="كراسة الحروف" class="fl fl2">
       <img src="/products/p02.jpg" alt="ميزانيتي الذكية" class="fl fl3">
@@ -52,17 +57,26 @@
   </div>
 </header>
 
+<!-- شريط تمارا — يظهر تلقائياً فقط إذا كانت تمارا مفعّلة -->
+<section class="tamara-strip" id="tamara-strip" hidden>
+  <div class="wrap tamara-inner">
+    <img src="/pay/tamara.svg" alt="تمارا">
+    <p id="tamara-strip-text"><b>قسّمها على 4 دفعات</b> — بدون فوائد وبدون رسوم تأخير</p>
+  </div>
+</section>
+
 <section class="strip" id="why">
   <div class="wrap strip-inner">
     <div class="feat"><span>⚡</span><b>تحميل فوري</b><small>يوصلك الملف مباشرة بعد الدفع</small></div>
     <div class="feat"><span>🇸🇦</span><b>عربي أصيل</b><small>مو مترجم — مصمم يمين-لليسار من الصفر</small></div>
     <div class="feat"><span>🔄</span><b>تحديثات مجانية</b><small>أي تطوير للمنتج يوصلك ببلاش</small></div>
-    <div class="feat"><span>💳</span><b>دفع سهل</b><small>واتساب أو صفحة الدفع — اللي يريحك</small></div>
+    <div class="feat"><span>💳</span><b>دفع مرن</b><small>بطاقة، أو تقسيط عبر تمارا، أو واتساب</small></div>
   </div>
 </section>
 
 <main class="wrap" id="products">
-  <div class="sec-head">
+  <div class="sec-head reveal">
+    <span class="eyebrow">المتجر</span>
     <h2>منتجاتنا</h2>
     <p>اختر الفئة اللي تناسبك — وكل الأسعار بالريال السعودي</p>
     <div class="chips" id="chips">
@@ -77,11 +91,11 @@
 
 <section class="subscribe" id="subscribe">
   <div class="wrap sub-inner">
-    <div class="sub-text">
+    <div class="sub-text reveal">
       <h2>🎁 سجل إيميلك.. وخذ هديتك</h2>
       <p>نرسل لك ملفاً مجانياً ترحيبياً + نخبرك أول بأول عن المنتجات الجديدة وعروض المواسم. بدون إزعاج — وعد.</p>
     </div>
-    <form id="sub-form" class="sub-form" autocomplete="on">
+    <form id="sub-form" class="sub-form reveal" autocomplete="on">
       <input type="text" id="sub-name" placeholder="اسمك (اختياري)" maxlength="60">
       <input type="email" id="sub-email" placeholder="إيميلك" required maxlength="120">
       <button type="submit" class="btn btn-gold" id="sub-btn">سجلني 🎁</button>
@@ -96,20 +110,31 @@
       <img src="/logo.png" alt="خمسة ديجيتال" class="foot-logo">
       <p>خمسة ديجيتال — منتجات رقمية عربية أصيلة.</p>
     </div>
+
+    <!-- حسابات التواصل — تُدار من لوحة المالك -->
+    <div class="socials" id="socials"></div>
+
     <div class="foot-links">
       <a href="#" id="foot-wa" target="_blank" rel="noopener">💬 واتساب</a>
-      <a href="https://waslati.com/khamsa" target="_blank" rel="noopener">🔗 صفحة الطلب (وصلاتي)</a>
+      <a href="#" id="foot-order" target="_blank" rel="noopener">🔗 صفحة الطلب</a>
       <a href="#products">🛍️ المنتجات</a>
       <a href="/policies">📄 الشروط والسياسات</a>
     </div>
+
+    <div class="foot-pay" id="foot-pay">
+      <span class="pay-chip">مدى</span>
+      <span class="pay-chip">Apple Pay</span>
+      <span class="pay-chip">فيزا / ماستركارد</span>
+    </div>
+
     <p class="copy">© <span id="year"></span> خمسة ديجيتال — جميع الحقوق محفوظة</p>
   </div>
 </footer>
 
 <script>
 // ================== الإعدادات — عدّل هنا ==================
-const WHATSAPP = "966548133555";              // رقم واتساب المتجر بدون +
-const ORDER_PAGE = "https://waslati.com/khamsa"; // صفحة الطلب/الدفع
+let WHATSAPP = "966548133555";                   // الافتراضي — تغيّره من لوحة المالك
+let ORDER_PAGE = "https://waslati.com/khamsa";   // صفحة الطلب/الدفع
 // ==========================================================
 
 // مفتاح إيقاف الطوارئ للدفع الآلي.
@@ -145,9 +170,34 @@ const PRODUCTS = [
   {key:"bundle-everything", img:"b05.jpg", name:"باقة كل شيء", desc:"المتجر كاملاً: كل الـ15 منتجاً — قيمتها 445 ريالاً", price:149, cat:"bundle", tag:"الصفقة الكبرى — وفر 296 🔥🔥", old:445, buy:""},
 ];
 
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
 function waLink(name, price){
   const msg = encodeURIComponent("مرحباً 👋 أبغى أطلب: " + name + " (" + price + " ر.س)");
   return "https://wa.me/" + WHATSAPP + "?text=" + msg;
+}
+
+/* ═══════════ تمارا ═══════════
+   نداء واحد يجلب حدود التاجر، ثم نحسب محلياً أي المنتجات تقبل التقسيط.
+   المنتجات الرخيصة (19 ر.س) عادةً تحت الحد الأدنى، فلا نعدها بشيء لا يتحقق. */
+let TAMARA = null;
+
+function tamaraFor(price){
+  if (!TAMARA || !TAMARA.enabled || !TAMARA.methods) return null;
+  const fit = TAMARA.methods.filter(m => price >= (m.min || 0) && (!m.max || price <= m.max));
+  if (!fit.length) return null;
+  const inst = fit.filter(m => m.type === "PAY_BY_INSTALMENTS" && m.instalments > 1);
+  return inst.length ? inst.sort((a, b) => b.instalments - a.instalments)[0] : fit[0];
+}
+
+function tamaraCardLine(price){
+  const m = tamaraFor(price);
+  if (!m) return "";
+  const n = m.instalments || 4;
+  const per = (price / n).toFixed(2).replace(/\.00$/, "");
+  return '<div class="card-tamara"><img src="/pay/tamara.svg" alt="تمارا">' +
+         '<span>' + n + ' دفعات × ' + per + ' ر.س</span></div>';
 }
 
 function render(filter){
@@ -157,10 +207,10 @@ function render(filter){
     const card = document.createElement("div");
     card.className = "card" + (p.cat === "bundle" ? " bundle" : "");
     card.innerHTML =
-      (p.img ? '<div class="card-img"><img loading="lazy" src="/products/' + p.img + '" alt="' + p.name + '"></div>'
+      (p.img ? '<div class="card-img"><img loading="lazy" src="/products/' + p.img + '" alt="' + esc(p.name) + '"></div>'
              : '<div class="card-img bundle-art"><span>🎁</span></div>') +
-      (p.tag ? '<span class="tag">' + p.tag + '</span>' : '') +
-      '<div class="card-body"><h3>' + p.name + '</h3><p>' + p.desc + '</p>' +
+      (p.tag ? '<span class="tag">' + esc(p.tag) + '</span>' : '') +
+      '<div class="card-body"><h3>' + esc(p.name) + '</h3><p>' + esc(p.desc) + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
       (function(){
         // الأولوية: صفحة الدفع ← رابط خارجي يدوي ← واتساب (احتياطي أخير فقط)
@@ -168,9 +218,10 @@ function render(filter){
         if (CHECKOUT_READY && p.key) return '<a class="btn btn-sm" href="/checkout?p=' + p.key + '">اطلب الآن 🛒</a>';
         if (p.buy) return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + p.buy + '">اطلب الآن 🛒</a>';
         return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب عبر واتساب</a>';
-      })() + '</div></div>';
+      })() + '</div>' + tamaraCardLine(p.price) + '</div>';
     grid.appendChild(card);
   });
+  observeReveals();
 }
 
 document.querySelectorAll(".chip").forEach(ch => ch.addEventListener("click", () => {
@@ -204,10 +255,100 @@ document.getElementById("sub-form").addEventListener("submit", async (e) => {
   btn.disabled = false; btn.textContent = "سجلني 🎁";
 });
 
-const wa = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent("مرحباً 👋 عندي استفسار عن منتجاتكم");
-["nav-wa", "hero-wa", "foot-wa"].forEach(id => document.getElementById(id).href = wa);
+/* ═══════════ حسابات التواصل — تُدار من لوحة المالك ═══════════ */
+const SOCIAL_META = {
+  tiktok:   {label:"تيك توك",   path:"M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 1 1 .77-5.06V9.7a5.67 5.67 0 0 0-.77-.05A5.65 5.65 0 1 0 15.54 15.3V8.9a7.34 7.34 0 0 0 4.3 1.38V7.19a4.29 4.29 0 0 1-3.24-1.37z"},
+  instagram:{label:"إنستغرام", path:"M12 2c2.72 0 3.06.01 4.12.06 1.07.05 1.79.22 2.43.46.66.26 1.22.6 1.77 1.16.56.55.9 1.11 1.16 1.77.25.64.41 1.36.46 2.43.05 1.06.06 1.4.06 4.12s-.01 3.06-.06 4.12c-.05 1.07-.21 1.79-.46 2.43-.26.66-.6 1.22-1.16 1.77-.55.56-1.11.9-1.77 1.16-.64.25-1.36.41-2.43.46-1.06.05-1.4.06-4.12.06s-3.06-.01-4.12-.06c-1.07-.05-1.79-.21-2.43-.46a4.9 4.9 0 0 1-1.77-1.16 4.9 4.9 0 0 1-1.16-1.77c-.24-.64-.41-1.36-.46-2.43C2.01 15.06 2 14.72 2 12s.01-3.06.06-4.12c.05-1.07.22-1.79.46-2.43.26-.66.6-1.22 1.16-1.77A4.9 4.9 0 0 1 5.45 2.52c.64-.24 1.36-.41 2.43-.46C8.94 2.01 9.28 2 12 2zm0 1.8c-2.67 0-2.99.01-4.04.06-.98.04-1.5.2-1.86.34-.47.18-.8.4-1.15.75-.35.35-.57.68-.75 1.15-.14.36-.3.88-.34 1.86-.05 1.05-.06 1.37-.06 4.04s.01 2.99.06 4.04c.04.98.2 1.5.34 1.86.18.47.4.8.75 1.15.35.35.68.57 1.15.75.36.14.88.3 1.86.34 1.05.05 1.37.06 4.04.06s2.99-.01 4.04-.06c.98-.04 1.5-.2 1.86-.34.47-.18.8-.4 1.15-.75.35-.35.57-.68.75-1.15.14-.36.3-.88.34-1.86.05-1.05.06-1.37.06-4.04s-.01-2.99-.06-4.04c-.04-.98-.2-1.5-.34-1.86a3.1 3.1 0 0 0-.75-1.15 3.1 3.1 0 0 0-1.15-.75c-.36-.14-.88-.3-1.86-.34-1.05-.05-1.37-.06-4.04-.06zM12 6.87a5.13 5.13 0 1 1 0 10.26 5.13 5.13 0 0 1 0-10.26zm0 1.8a3.33 3.33 0 1 0 0 6.66 3.33 3.33 0 0 0 0-6.66zm5.34-3.2a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"},
+  snapchat: {label:"سناب شات", path:"M12 3c-3.3 0-5.6 2.3-5.6 5.4v3.9c0 .9-.6 1.7-1.6 2.1-.5.2-.8.5-.8.9 0 .5.5.9 1.3 1.1.3.1.5.3.6.6.2.7.6 1.1 1.3 1.1.4 0 .8-.1 1.2-.1.9 0 1.4.3 2 .8.5.4 1.1.9 2.1.9s1.6-.5 2.1-.9c.6-.5 1.1-.8 2-.8.4 0 .8.1 1.2.1.7 0 1.1-.4 1.3-1.1.1-.3.3-.5.6-.6.8-.2 1.3-.6 1.3-1.1 0-.4-.3-.7-.8-.9-1-.4-1.6-1.2-1.6-2.1V8.4C17.6 5.3 15.3 3 12 3z"},
+  x:        {label:"إكس",       path:"M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.82l4.71 6.23 5.46-6.23zm-1.16 17.52h1.83L7.08 4.13H5.11l11.97 15.64z"},
+  youtube:  {label:"يوتيوب",    path:"M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.09 0 12 0 12s0 3.91.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.91 24 12 24 12s0-3.91-.5-5.8zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"},
+  facebook: {label:"فيسبوك",    path:"M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"},
+  telegram: {label:"تيليجرام",  path:"M11.94 0C5.35 0 0 5.35 0 11.94s5.35 11.94 11.94 11.94 11.94-5.35 11.94-11.94S18.53 0 11.94 0zm5.54 8.16-1.85 8.73c-.14.62-.5.77-1.02.48l-2.82-2.08-1.36 1.31c-.15.15-.28.28-.57.28l.2-2.88 5.24-4.74c.23-.2-.05-.31-.35-.11l-6.48 4.08-2.79-.87c-.61-.19-.62-.61.13-.9l10.9-4.2c.5-.19.95.12.78.9z"},
+  whatsapp: {label:"واتساب",    path:"M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35zM12.05 21.8h-.02a9.8 9.8 0 0 1-4.99-1.37l-.36-.21-3.7.97.99-3.61-.23-.37a9.78 9.78 0 0 1-1.5-5.23c0-5.4 4.4-9.79 9.82-9.79 2.62 0 5.08 1.02 6.93 2.87a9.73 9.73 0 0 1 2.87 6.93c0 5.4-4.4 9.81-9.81 9.81zM20.52 3.49A11.72 11.72 0 0 0 12.05 0C5.55 0 .26 5.29.26 11.79c0 2.08.54 4.11 1.58 5.9L.16 24l6.45-1.69a11.75 11.75 0 0 0 5.44 1.39h.01c6.5 0 11.79-5.29 11.79-11.79 0-3.15-1.23-6.11-3.46-8.34z"},
+};
+
+function socialIcon(url, meta){
+  return '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" ' +
+         'title="' + meta.label + '" aria-label="' + meta.label + '">' +
+         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + meta.path + '"/></svg></a>';
+}
+
+function renderSocials(social){
+  const box = document.getElementById("socials");
+  let html = "";
+  // ترتيب ثابت مهما كان ترتيب الحفظ — الواتساب دائماً أولاً لأنه قناة الطلب
+  html += socialIcon("https://wa.me/" + WHATSAPP, SOCIAL_META.whatsapp);
+  Object.keys(SOCIAL_META).forEach(k => {
+    if (k === "whatsapp") return;
+    if (social && social[k]) html += socialIcon(social[k], SOCIAL_META[k]);
+  });
+  box.innerHTML = html;
+}
+
+function applyLinks(){
+  const wa = "https://wa.me/" + WHATSAPP + "?text=" +
+    encodeURIComponent("مرحباً 👋 عندي استفسار عن منتجاتكم");
+  ["nav-wa", "hero-wa", "foot-wa"].forEach(id => { document.getElementById(id).href = wa; });
+  const order = document.getElementById("foot-order");
+  if (ORDER_PAGE) { order.href = ORDER_PAGE; } else { order.hidden = true; }
+}
+
+/* ═══════════ ظهور تدريجي عند التمرير ═══════════ */
+let io = null;
+const revealAll = () =>
+  document.querySelectorAll(".reveal:not(.in)").forEach(el => el.classList.add("in"));
+
+function observeReveals(){
+  if (!("IntersectionObserver" in window)) { revealAll(); return; }
+  if (!io) {
+    io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: .05 });
+  }
+  document.querySelectorAll(".reveal:not(.in)").forEach(el => {
+    // ما هو ظاهر أصلاً يظهر فوراً بلا انتظار المراقب — الشاشة الأولى لا تحتمل تأخيراً
+    if (el.getBoundingClientRect().top < innerHeight) el.classList.add("in");
+    else io.observe(el);
+  });
+}
+
+// شبكة أمان: لو تعطّل المراقب لأي سبب (تبويب مخفي، إضافة متصفح)،
+// لا يجوز أن يبقى محتوى الصفحة غير مرئي — نُظهره كله بعد ثانيتين.
+setTimeout(revealAll, 2000);
+
+// خط رفيع أسفل الشريط العلوي يظهر فقط بعد بدء التمرير
+const nav = document.getElementById("nav");
+addEventListener("scroll", () => nav.classList.toggle("stuck", scrollY > 8), { passive: true });
+
 document.getElementById("year").textContent = new Date().getFullYear();
+applyLinks();
+renderSocials({});
 render("all");
+observeReveals();
+
+// الإعدادات وحدود تمارا — نداءان مستقلان، وأي فشل فيهما لا يعطّل الصفحة
+fetch("/api/settings").then(r => r.json()).then(s => {
+  if (s && s.whatsapp) WHATSAPP = s.whatsapp;
+  if (s && typeof s.orderPage === "string") ORDER_PAGE = s.orderPage;
+  applyLinks();
+  renderSocials((s && s.social) || {});
+}).catch(function () {});
+
+fetch("/api/tamara-config").then(r => r.json()).then(d => {
+  if (!d || !d.enabled) return;
+  TAMARA = d;
+  const best = tamaraFor(149);
+  const n = (best && best.instalments) || 4;
+  document.getElementById("tamara-strip-text").innerHTML =
+    '<b>قسّمها على ' + n + ' دفعات</b> — بدون فوائد وبدون رسوم تأخير، من ' + d.min + ' ر.س';
+  document.getElementById("tamara-strip").hidden = false;
+  const img = document.createElement("img");
+  img.src = "/pay/tamara.svg"; img.alt = "تمارا";
+  document.getElementById("foot-pay").appendChild(img);
+  render(document.querySelector(".chip.active").dataset.f);
+}).catch(function () {});
 </script>
 </body>
 </html>

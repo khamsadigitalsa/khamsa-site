@@ -9,6 +9,13 @@ import pathlib
 import re
 import sys
 
+# مخرجات الأداة عربية، وطرفية ويندوز الافتراضية cp1252 تتعطّل عليها
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 BACKSLASH = chr(92)
 PAIRS = {")": "(", "]": "[", "}": "{"}
 

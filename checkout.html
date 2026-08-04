@@ -11,28 +11,52 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <style>
-  .co-wrap{max-width:520px;margin:34px auto;padding:0 18px}
-  .co-product{display:flex;gap:16px;align-items:center;background:#fff;border-radius:16px;
-    box-shadow:var(--shadow);padding:16px;margin-bottom:18px}
-  .co-product img{width:92px;height:92px;border-radius:12px;object-fit:cover}
-  .co-product h1{font-size:1.15rem;margin:0 0 4px}
-  .co-product .price{font-size:1.25rem}
-  .back{display:inline-block;margin:14px 0;color:var(--teal);font-weight:700}
-  .pays{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px;
-    color:var(--grey);font-size:.85rem;flex-wrap:wrap}
-  .pay-chip{background:var(--teal-soft);border-radius:8px;padding:4px 12px;font-weight:700;color:var(--teal-deep)}
-  .trust{text-align:center;color:var(--grey);font-size:.82rem;margin-top:12px;line-height:1.9}
+  .co-wrap{max-width:540px;margin:30px auto 56px;padding:0 18px}
+  .co-product{display:flex;gap:16px;align-items:center;background:#fff;border-radius:var(--r);
+    border:1px solid var(--line);box-shadow:var(--shadow-soft);padding:16px;margin-bottom:18px}
+  .co-product img{width:92px;height:92px;border-radius:14px;object-fit:cover;flex:none}
+  .co-product h1{font-size:1.12rem;margin:0 0 4px;letter-spacing:-.02em;line-height:1.5}
+  .co-product .price{font-size:1.2rem}
+  .back{display:inline-flex;align-items:center;gap:6px;margin:10px 0 16px;
+    color:var(--teal);font-weight:700;font-size:.94rem}
+  .back:hover{opacity:.75}
+  .trust{text-align:center;color:var(--grey);font-size:.82rem;margin-top:14px;line-height:1.9}
   .code-row{display:flex;gap:8px;align-items:stretch}
   .code-row input{flex:1;text-transform:uppercase}
   .code-row .btn{white-space:nowrap;padding-inline:18px}
   .code-msg{min-height:20px;margin:6px 0 0;font-size:.88rem;font-weight:700}
   .code-msg.ok{color:#1F6E6B}
   .code-msg.err{color:#B3261E}
-  .was{text-decoration:line-through;opacity:.55;font-weight:400;margin-inline-start:8px;font-size:.9rem}
-  .badge-off{background:#C9A227;color:#3a2c00;border-radius:99px;padding:2px 10px;
-    font-size:.78rem;font-weight:800;margin-inline-start:8px}
-  .dl-item{background:#F2F7F6;border-radius:12px;padding:12px 16px;margin:10px 0;
+  .was{text-decoration:line-through;opacity:.5;font-weight:400;margin-inline-start:8px;font-size:.9rem}
+  .badge-off{background:var(--gold);color:#3a2c00;border-radius:99px;padding:2px 10px;
+    font-size:.76rem;font-weight:800;margin-inline-start:8px}
+  .dl-item{background:var(--teal-soft);border-radius:14px;padding:13px 16px;margin:10px 0;
     display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  /* فاصل «أو» بين وسيلتَي الدفع */
+  .or{display:flex;align-items:center;gap:14px;margin:20px 0 4px;
+    color:var(--grey);font-size:.82rem;font-weight:700}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* صندوق تمارا */
+  .tamara-box{border:1.5px solid rgba(107,33,168,.22);background:var(--tamara-l);
+    border-radius:16px;padding:16px;margin-top:12px}
+  .tamara-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .tamara-head img{height:24px;width:auto}
+  .tamara-head b{font-size:.98rem;letter-spacing:-.01em}
+  .tamara-sub{color:#6B4E86;font-size:.85rem;margin-bottom:12px}
+  .tamara-box label{display:block;font-weight:700;font-size:.85rem;color:#5B3E76;margin-bottom:5px}
+  .tamara-box input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(107,33,168,.2);
+    font-family:inherit;font-size:1rem;background:#fff;color:var(--ink);direction:ltr;text-align:right}
+  .tamara-box input:focus{outline:none;border-color:var(--tamara);
+    box-shadow:0 0 0 3px rgba(107,33,168,.13)}
+  .btn-tamara{background:var(--tamara);color:#fff;width:100%;margin-top:12px;
+    box-shadow:0 6px 18px rgba(107,33,168,.26)}
+  .btn-tamara:hover{background:#581C87;transform:translateY(-2px)}
+  .tamara-note{color:var(--grey);font-size:.84rem;text-align:center;margin-top:14px;
+    display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+  .tamara-note img{height:17px;width:auto;opacity:.85}
+  .tamara-msg{min-height:20px;font-size:.86rem;font-weight:700;color:#B3261E;margin-top:8px}
 </style>
 </head>
 <body>
@@ -54,11 +78,16 @@
     <p class="code-msg" id="co-code-msg"></p>
 
     <div class="row-actions">
-      <button class="btn btn-primary" id="co-continue">متابعة للدفع الآمن 🔒</button>
+      <button class="btn btn-primary btn-block" id="co-continue">متابعة للدفع الآمن 🔒</button>
     </div>
     <p class="result err" id="co-msg"></p>
+
+    <!-- خيار تمارا — يظهر فقط إذا كان المبلغ ضمن حدودها -->
+    <div id="tamara-slot"></div>
+
     <div id="co-files"></div>
-    <div class="pays">
+
+    <div class="pays" id="pay-marks">
       <span class="pay-chip">مدى</span>
       <span class="pay-chip">Apple Pay</span>
       <span class="pay-chip">فيزا / ماستركارد</span>
@@ -70,7 +99,7 @@
 </div>
 
 <script>
-const WHATSAPP = "966548133555";
+let WHATSAPP = "966548133555";
 
 const PRODUCTS = {
   "interactive":  {name:"البلانر العربي التفاعلي (GoodNotes)", price:79, img:"p01.jpg"},
@@ -102,6 +131,11 @@ const box = document.getElementById("co-product");
 // حالة الخصم — النسخة الموثوقة منها في السيرفر دائماً؛ هذه للعرض فقط
 let discount = { code: "", percent: 0, price: product ? product.price : 0, free: false };
 
+// رقم الواتساب قابل للتغيير من لوحة المالك
+fetch("/api/settings").then(r => r.json()).then(s => {
+  if (s && s.whatsapp) WHATSAPP = s.whatsapp;
+}).catch(function () {});
+
 function renderProduct() {
   if (!product) return;
   const off = discount.percent > 0;
@@ -129,7 +163,96 @@ function setContinueLabel() {
   btn.textContent = discount.free ? "احصل على ملفاتك مجاناً 🎁" : "متابعة للدفع الآمن 🔒";
 }
 
-// تطبيق الكود — التحقق يتم في السيرفر، والمتصفح يعرض النتيجة فقط
+function readEmail(msgEl) {
+  const email = document.getElementById("co-email").value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    msgEl.textContent = "اكتب إيميلاً صحيحاً — عليه توصلك الملفات";
+    document.getElementById("co-email").focus();
+    return "";
+  }
+  msgEl.textContent = "";
+  return email;
+}
+
+/* ═══════════ تمارا — قسّمها على دفعات ═══════════
+   الحدود تختلف من تاجر لآخر، فنسأل السيرفر عنها بدل افتراضها.
+   لو كان سعر المنتج تحت الحد الأدنى نعرض ملاحظة بدل زر يفشل عند الضغط. */
+const tamaraSlot = document.getElementById("tamara-slot");
+
+async function refreshTamara() {
+  tamaraSlot.innerHTML = "";
+  if (!product || discount.free) return;
+  let d;
+  try {
+    d = await (await fetch("/api/tamara-config?amount=" + discount.price)).json();
+  } catch (e) { return; }
+  if (!d || !d.enabled) return;
+
+  if (!d.available) {
+    tamaraSlot.innerHTML =
+      '<p class="tamara-note"><img src="/pay/tamara.svg" alt="تمارا">' +
+      'التقسيط متاح للطلبات من ' + d.min + ' ر.س — جرّب إحدى الحزم 🎁</p>';
+    return;
+  }
+
+  const n = d.instalments || 4;
+  const per = (discount.price / n).toFixed(2).replace(/\.00$/, "");
+  tamaraSlot.innerHTML =
+    '<div class="or">أو</div>' +
+    '<div class="tamara-box">' +
+      '<div class="tamara-head"><img src="/pay/tamara.svg" alt="تمارا">' +
+        '<b>قسّمها على ' + n + ' دفعات</b></div>' +
+      '<p class="tamara-sub">' + per + ' ر.س شهرياً — بدون فوائد وبدون رسوم تأخير</p>' +
+      '<label for="tm-phone">رقم جوالك (تطلبه تمارا للتحقق)</label>' +
+      '<input type="tel" id="tm-phone" placeholder="05XXXXXXXX" inputmode="tel" maxlength="15" autocomplete="tel">' +
+      '<button class="btn btn-tamara" id="tm-btn">ادفع بالتقسيط عبر تمارا</button>' +
+      '<p class="tamara-msg" id="tm-msg"></p>' +
+    '</div>';
+
+  document.getElementById("tm-btn").addEventListener("click", payWithTamara);
+}
+
+async function payWithTamara() {
+  const btn = document.getElementById("tm-btn");
+  const msg = document.getElementById("tm-msg");
+  const phone = document.getElementById("tm-phone").value.trim();
+  msg.textContent = "";
+
+  const email = readEmail(msg);
+  if (!email) return;
+  if (!/^(?:\+?966|0)?5\d{8}$/.test(phone.replace(/[\s-]/g, ""))) {
+    msg.textContent = "اكتب رقم جوال سعودي صحيح — مثال: 0512345678"; return;
+  }
+
+  btn.disabled = true; btn.textContent = "جاري فتح تمارا..";
+  try {
+    const r = await fetch("/api/tamara-start", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        productKey: key, email: email, phone: phone, code: discount.code,
+        isMobile: window.matchMedia("(max-width:768px)").matches,
+      })
+    });
+    const d = await r.json().catch(function () { return {}; });
+    if (r.ok && d.url) { location.href = d.url; return; }
+    msg.textContent = d.error || "تعذّر فتح تمارا — جرب البطاقة";
+  } catch (e) {
+    msg.textContent = "تعذّر الاتصال بتمارا — جرب البطاقة";
+  }
+  btn.disabled = false; btn.textContent = "ادفع بالتقسيط عبر تمارا";
+}
+
+// شارة تمارا ضمن وسائل الدفع المعروضة
+fetch("/api/tamara-config").then(r => r.json()).then(d => {
+  if (d && d.enabled) {
+    const img = document.createElement("img");
+    img.src = "/pay/tamara.svg"; img.alt = "تمارا"; img.className = "pay-logo";
+    document.getElementById("pay-marks").appendChild(img);
+  }
+}).catch(function () {});
+
+/* ═══════════ كود الخصم ═══════════ */
 document.getElementById("co-apply").addEventListener("click", async () => {
   const input = document.getElementById("co-code");
   const msg = document.getElementById("co-code-msg");
@@ -140,7 +263,7 @@ document.getElementById("co-apply").addEventListener("click", async () => {
   if (!code) {
     discount = { code: "", percent: 0, price: product.price, free: false };
     msg.textContent = ""; msg.className = "code-msg";
-    renderProduct(); setContinueLabel();
+    renderProduct(); setContinueLabel(); refreshTamara();
     return;
   }
 
@@ -166,7 +289,7 @@ document.getElementById("co-apply").addEventListener("click", async () => {
   } catch (e) {
     msg.textContent = "تعذّر التحقق من الكود"; msg.className = "code-msg err";
   }
-  renderProduct(); setContinueLabel();
+  renderProduct(); setContinueLabel(); refreshTamara();
   btn.disabled = false; btn.textContent = "تطبيق";
 });
 
@@ -174,14 +297,12 @@ document.getElementById("co-code").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); document.getElementById("co-apply").click(); }
 });
 
+/* ═══════════ الدفع بالبطاقة / الطلب المجاني ═══════════ */
 document.getElementById("co-continue").addEventListener("click", async () => {
   const btn = document.getElementById("co-continue");
   const msg = document.getElementById("co-msg");
-  const email = document.getElementById("co-email").value.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-    msg.textContent = "اكتب إيميلاً صحيحاً — عليه توصلك الملفات"; return;
-  }
-  msg.textContent = "";
+  const email = readEmail(msg);
+  if (!email) return;
   btn.disabled = true; btn.textContent = "جاري تجهيز الدفع..";
 
   // بديل مضمون: مهما صار، العميل يقدر يكمل طلبه بواتساب
@@ -237,6 +358,8 @@ document.getElementById("co-continue").addEventListener("click", async () => {
   }
   btn.disabled = false; setContinueLabel();
 });
+
+if (product) refreshTamara();
 </script>
 </body>
 </html>

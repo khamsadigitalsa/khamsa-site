@@ -34,6 +34,18 @@ alter table public.orders add column if not exists discount_percent int not null
 
 
 -- ═══════════════════════════════════════════════════════════
+--  إعدادات الموقع — حسابات التواصل ورقم الواتساب
+--  صف واحد فقط بالمفتاح 'site'، يحرّره المالك من لوحة الأدمن
+-- ═══════════════════════════════════════════════════════════
+create table if not exists public.settings (
+  key        text primary key,
+  value      jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.settings enable row level security;
+
+
+-- ═══════════════════════════════════════════════════════════
 --  أكواد الخصم
 -- ═══════════════════════════════════════════════════════════
 create table if not exists public.discounts (

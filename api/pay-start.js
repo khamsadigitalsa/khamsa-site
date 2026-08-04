@@ -1,5 +1,5 @@
 // إنشاء فاتورة دفع في Paylink وإرجاع رابط صفحة الدفع (مدى + Apple Pay)
-const { PRODUCTS } = require("./_delivery.js");
+const { PRODUCTS, buildOrderNumber } = require("./_delivery.js");
 const { peek, finalPrice } = require("./_discounts.js");
 
 // ملاحظة: سيرفر التجربة restpilot.paylink.sa تظهر عليه شهادة أمان لدومين آخر (خلل من Paylink)
@@ -74,11 +74,8 @@ module.exports = async (req, res) => {
 
   try {
     const jwt = await token();
-    // رقم طلب فريد — نسبة الخصم والمنتج والإيميل مضمّنة فيه لاسترجاعها وقت التحقق.
-    // الرقم يُنشأ في السيرفر ويعود من Paylink، فلا يستطيع المتصفح تزويره.
-    const orderNumber = "KH-D" + percent + "C" + code + "-" + productKey + "-"
-      + Buffer.from(email).toString("base64url").slice(0, 24)
-      + "-" + Math.floor(Number(String(req.headers["x-request-id"] || "").replace(/\D/g, "").slice(0, 8)) || 0);
+    // رقم طلب فريد — صيغته مشتركة مع تمارا في _delivery.js
+    const orderNumber = buildOrderNumber(percent, code, productKey, email);
 
     const origin = "https://" + (req.headers["x-forwarded-host"] || req.headers.host);
     const r = await fetch(base() + "/api/addInvoice", {

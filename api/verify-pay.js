@@ -1,8 +1,9 @@
-// التحقق الآلي من الدفع وتسليم الملفات فوراً — يدعم Paylink وميسر
+// التحقق الآلي من الدفع وتسليم الملفات فوراً — يدعم Paylink وتمارا وميسر
 // نقطة عامة: آمنة لأن التحقق يتم من سيرفر البوابة مباشرة بالمفتاح السري
-const { sbFetch } = require("./_lib.js");
-const { PRODUCTS, signLinks, deliverProduct, addSubscriber } = require("./_delivery.js");
-const { finalPrice, redeem } = require("./_discounts.js");
+const { PRODUCTS, parseOrderNumber } = require("./_delivery.js");
+const { finalPrice } = require("./_discounts.js");
+const { fulfil } = require("./_fulfil.js");
+const T = require("./_tamara.js");
 
 function paylinkBase() {
   return process.env.PAYLINK_MODE === "test"
@@ -10,25 +11,8 @@ function paylinkBase() {
     : "https://restapi.paylink.sa";
 }
 
-// يستخرج نسبة الخصم والمنتج والإيميل من رقم الطلب.
-// الصيغة الحالية: KH-D<pct>-<productKey>-<emailBase64url>-<n>
-// والقديمة (بلا خصم): KH-<productKey>-<emailBase64url>-<n>
-function parseOrder(orderNumber) {
-  const s = String(orderNumber || "");
-  const decode = (b) => { try { return Buffer.from(b, "base64url").toString("utf8"); } catch (e) { return ""; } };
-
-  // الكود مقيّد بـ [A-Z0-9] فلا يحتوي شرطة، وبذلك يبقى الفصل واضحاً
-  let m = s.match(/^KH-D(\d{1,3})C([A-Z0-9]*)-(.+)-([A-Za-z0-9_-]+)-\d*$/);
-  if (m) {
-    return { percent: Math.min(100, Number(m[1])), code: m[2] || "",
-             productKey: m[3], email: decode(m[4]) };
-  }
-
-  m = s.match(/^KH-(.+)-([A-Za-z0-9_-]+)-\d*$/);
-  if (m) return { percent: 0, code: "", productKey: m[1], email: decode(m[2]) };
-
-  return {};
-}
+// صيغة رقم الطلب وتحليله يعيشان في _delivery.js — مصدر واحد لكل البوابات
+const parseOrder = parseOrderNumber;
 
 async function verifyPaylink(transactionNo) {
   const auth = await fetch(paylinkBase() + "/api/auth", {
@@ -63,6 +47,42 @@ async function verifyPaylink(transactionNo) {
   };
 }
 
+// تمارا: الموافقة وحدها لا تعني أن المبلغ وصلنا.
+// لا بد من اعتماد الطلب (authorise) ثم تحصيله (capture) — وهذا ما يفعله settle.
+// لذلك لا نسلّم الملفات إلا بعد أن تصبح الحالة fully_captured.
+async function verifyTamara(orderId) {
+  const order = await T.getOrder(orderId);
+  const status = String(order.status || "").toLowerCase();
+
+  const bad = { declined: "رفضت تمارا الطلب", expired: "انتهت صلاحية طلب تمارا",
+                canceled: "أُلغي طلب تمارا", cancelled: "أُلغي طلب تمارا" };
+  if (bad[status]) return { unpaid: true, status: status, message: bad[status] };
+  if (status === "new") return { unpaid: true, status: status, message: "لم تكتمل الموافقة في تمارا" };
+
+  let settled = status;
+  if (status !== "fully_captured") {
+    try {
+      settled = await T.settle(order);
+    } catch (e) {
+      console.error("tamara settle failed", orderId, e.message);
+      return { unpaid: true, status: status, message: "تعذّر تأكيد الطلب لدى تمارا — تواصل معنا" };
+    }
+  }
+  if (settled !== "fully_captured") {
+    return { unpaid: true, status: settled, message: "لم يكتمل تحصيل المبلغ من تمارا" };
+  }
+
+  const parsed = parseOrder(order.order_reference_id || order.order_number);
+  return {
+    paymentId: "TM-" + orderId,
+    productKey: parsed.productKey,
+    email: String((order.consumer && order.consumer.email) || parsed.email || "").toLowerCase().trim(),
+    amount: Number((order.total_amount || {}).amount),
+    percent: parsed.percent || 0,
+    code: parsed.code || "",
+  };
+}
+
 async function verifyMoyasar(id) {
   const auth = "Basic " + Buffer.from(process.env.MOYASAR_SECRET_KEY + ":").toString("base64");
   const r = await fetch("https://api.moyasar.com/v1/payments/" + encodeURIComponent(id), {
@@ -85,11 +105,13 @@ module.exports = async (req, res) => {
 
   const body = req.body || {};
   const transactionNo = String(body.transactionNo || "").trim();
+  const tamaraOrderId = String(body.tamaraOrderId || "").trim();
   const moyasarId = String(body.id || "").trim();
 
   try {
     let result = null;
     if (transactionNo && process.env.PAYLINK_API_ID) result = await verifyPaylink(transactionNo);
+    else if (tamaraOrderId && T.enabled()) result = await verifyTamara(tamaraOrderId);
     else if (moyasarId && process.env.MOYASAR_SECRET_KEY) result = await verifyMoyasar(moyasarId);
     else return res.status(400).json({ error: "لا يمكن التحقق من الدفعة" });
 
@@ -108,60 +130,14 @@ module.exports = async (req, res) => {
       });
     }
 
-    // يُسجَّل الطلب أولاً حتى لو تعثّر التسليم — الدفعة حصلت ولا يجوز ضياع أثرها
-    await sbFetch("orders?on_conflict=id", {
-      method: "POST",
-      headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
-      body: JSON.stringify({
-        id: result.paymentId, email: result.email,
-        product: result.productKey, amount: Math.round(result.amount * 100),
-        discount_percent: result.percent || 0,
-        discount_code: result.code || null,
-      }),
-    });
-
-    // هل سُلّم هذا الطلب من قبل؟ العمود delivered يمنع تكرار الإيميل،
-    // ويسمح بإعادة المحاولة لو فشل التسليم في المرة الأولى
-    let alreadyDelivered = false;
-    try {
-      const q = await sbFetch("orders?id=eq." + encodeURIComponent(result.paymentId) + "&select=delivered");
-      if (q.ok) {
-        const rowsFound = await q.json();
-        alreadyDelivered = Array.isArray(rowsFound) && rowsFound[0] && rowsFound[0].delivered === true;
-      }
-    } catch (e) { /* العمود قد لا يكون موجوداً بعد — نعامله كغير مُسلَّم */ }
-
-    // التسليم منفصل عن التحقق: فشله لا يعني أن الدفع فشل
-    let links = null, emailed = false, deliveryError = null;
-    try {
-      if (!alreadyDelivered && result.email) {
-        // يُستهلك الكود مرة واحدة فقط، وعند نجاح الدفع لا عند فتح صفحة الدفع
-        if (result.code) {
-          await redeem(result.code, result.productKey).catch(() => {});
-        }
-        const out = await deliverProduct(result.email, result.productKey);
-        links = out.links;
-        emailed = true;
-        await addSubscriber(result.email, "");
-        await sbFetch("orders?id=eq." + encodeURIComponent(result.paymentId), {
-          method: "PATCH",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ delivered: true }),
-        }).catch(() => {});
-      } else {
-        links = await signLinks(result.productKey);
-      }
-    } catch (e) {
-      console.error("DELIVERY FAILED for paid order", result.paymentId, e);
-      deliveryError = e.message || String(e);
-    }
+    const { links, emailed, deliveryError } = await fulfil(result);
 
     // الدفع تم بنجاح في كل الحالات التي تصل هنا — نقولها صراحةً للعميل
     return res.status(200).json({
       ok: !deliveryError,
       paid: true,
       name: product.name,
-      links: links || [],
+      links: links,
       emailed,
       email: result.email,
       orderRef: result.paymentId,

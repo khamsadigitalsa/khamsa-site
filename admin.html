@@ -29,6 +29,8 @@
     padding:5px 9px;font-size:.78rem;font-weight:700;color:#5b6b68}
   .dc-btn:hover{border-color:#B3261E;color:#B3261E}
   .dc-scroll{overflow-x:auto}
+  .soc-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .soc-grid label{display:block;font-size:.84rem;font-weight:700;margin:0 0 5px;color:var(--grey)}
 </style>
 </head>
 <body>
@@ -109,6 +111,37 @@
     </div>
 
     <div class="panel">
+      <h2>🔗 حسابات التواصل (تظهر أسفل الموقع)</h2>
+      <div class="soc-grid" id="soc-grid">
+        <div><label for="st-whatsapp">📱 رقم الواتساب</label>
+          <input id="st-whatsapp" dir="ltr" placeholder="966548133555" inputmode="numeric"></div>
+        <div><label for="st-orderPage">🔗 صفحة الطلب (وصلاتي)</label>
+          <input id="st-orderPage" dir="ltr" placeholder="https://waslati.com/khamsa"></div>
+        <div><label for="st-tiktok">🎵 تيك توك</label>
+          <input id="st-tiktok" dir="ltr" placeholder="https://tiktok.com/@..."></div>
+        <div><label for="st-instagram">📸 إنستغرام</label>
+          <input id="st-instagram" dir="ltr" placeholder="https://instagram.com/..."></div>
+        <div><label for="st-snapchat">👻 سناب شات</label>
+          <input id="st-snapchat" dir="ltr" placeholder="https://snapchat.com/add/..."></div>
+        <div><label for="st-x">✖️ إكس (تويتر)</label>
+          <input id="st-x" dir="ltr" placeholder="https://x.com/..."></div>
+        <div><label for="st-youtube">▶️ يوتيوب</label>
+          <input id="st-youtube" dir="ltr" placeholder="https://youtube.com/@..."></div>
+        <div><label for="st-facebook">👍 فيسبوك</label>
+          <input id="st-facebook" dir="ltr" placeholder="https://facebook.com/..."></div>
+        <div><label for="st-telegram">✈️ تيليجرام</label>
+          <input id="st-telegram" dir="ltr" placeholder="https://t.me/..."></div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="st-save">💾 حفظ الحسابات</button>
+        <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">👁️ شوف الموقع</a>
+      </div>
+      <p class="hint">الروابط لازم تبدأ بـ <b dir="ltr">https://</b> — وأي خانة تتركها فاضية ما تظهر أيقونتها.
+        رقم الواتساب بصيغة دولية بدون + (مثال: 966501234567) ويُستخدم في كل أزرار الواتساب بالموقع.</p>
+      <p class="result" id="st-msg"></p>
+    </div>
+
+    <div class="panel">
       <h2>🎟️ أكواد الخصم</h2>
       <div class="disc-form">
         <div><label for="dc-code">الكود</label>
@@ -168,7 +201,7 @@ async function login(){
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({password: document.getElementById("pass").value})
   });
-  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); dcLoad(); }
+  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); dcLoad(); stLoad(); }
   else { msg.textContent = "كلمة السر غير صحيحة"; msg.className = "result err"; }
 }
 document.getElementById("login-btn").addEventListener("click", login);
@@ -289,6 +322,61 @@ document.getElementById("send-btn").addEventListener("click", async () => {
     msg.textContent = "تعذر الاتصال"; msg.className = "result err";
   }
   btn.disabled = false; btn.textContent = "إرسال";
+});
+
+/* ═══════════ حسابات التواصل ═══════════ */
+const ST_PLATFORMS = ["tiktok","instagram","snapchat","x","youtube","facebook","telegram"];
+
+async function stLoad(){
+  try {
+    const s = await (await fetch("/api/settings")).json();
+    document.getElementById("st-whatsapp").value = s.whatsapp || "";
+    document.getElementById("st-orderPage").value = s.orderPage || "";
+    ST_PLATFORMS.forEach(p => {
+      document.getElementById("st-" + p).value = (s.social && s.social[p]) || "";
+    });
+  } catch (e) { /* الخانات تبقى فاضية — يقدر يملأها ويحفظ */ }
+}
+
+document.getElementById("st-save").addEventListener("click", async () => {
+  const btn = document.getElementById("st-save");
+  const msg = document.getElementById("st-msg");
+  msg.textContent = ""; msg.className = "result";
+
+  // نتحقق هنا قبل الإرسال حتى يعرف المالك أي خانة بالضبط رُفضت،
+  // فالسيرفر يتجاهل الروابط غير الصالحة بصمت
+  const social = {};
+  let bad = "";
+  ST_PLATFORMS.forEach(p => {
+    const v = document.getElementById("st-" + p).value.trim();
+    if (!v) return;
+    if (!/^https:\/\/.{3,}/i.test(v)) { bad = bad || p; return; }
+    social[p] = v;
+  });
+  if (bad) {
+    msg.textContent = "رابط «" + bad + "» لازم يبدأ بـ https:// — صححه وأعد الحفظ";
+    msg.className = "result err"; return;
+  }
+
+  btn.disabled = true; btn.textContent = "يحفظ..";
+  try {
+    const r = await fetch("/api/settings", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        whatsapp: document.getElementById("st-whatsapp").value,
+        orderPage: document.getElementById("st-orderPage").value.trim(),
+        social: social,
+      })
+    });
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = d.message || d.error || "صار خطأ";
+    msg.className = "result " + (r.ok ? "ok" : "err");
+    if (r.ok) stLoad();
+  } catch (e) {
+    msg.textContent = "تعذر الاتصال"; msg.className = "result err";
+  }
+  btn.disabled = false; btn.textContent = "💾 حفظ الحسابات";
 });
 
 /* ═══════════ أكواد الخصم ═══════════ */

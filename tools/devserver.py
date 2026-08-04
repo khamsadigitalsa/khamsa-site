@@ -45,6 +45,46 @@ class Handler(SimpleHTTPRequestHandler):
                      "هذا الخادم للواجهة فقط",
         })
 
+    # نقطتان تقرأهما كل صفحة عند فتحها (الفوتر وشارة تمارا).
+    # نردّ عليهما ببيانات وهمية حتى تظهر الواجهة محلياً كما ستظهر بعد النشر.
+    def _api_mock(self, path):
+        if path.startswith("/api/settings"):
+            return {
+                "whatsapp": "966548133555",
+                "orderPage": "https://waslati.com/khamsa",
+                "social": {
+                    "tiktok": "https://tiktok.com/@khamsadigital",
+                    "instagram": "https://instagram.com/khamsadigital",
+                    "snapchat": "https://snapchat.com/add/khamsadigital",
+                    "x": "https://x.com/khamsadigital",
+                    "youtube": "https://youtube.com/@khamsadigital",
+                },
+            }
+        if path.startswith("/api/tamara-config"):
+            methods = [
+                {"type": "PAY_BY_INSTALMENTS", "instalments": 4, "min": 100, "max": 5000},
+                {"type": "PAY_BY_LATER", "instalments": None, "min": 100, "max": 2500},
+            ]
+            amount = 0.0
+            if "?" in path:
+                for part in path.split("?", 1)[1].split("&"):
+                    k, _, v = part.partition("=")
+                    if k in ("amount", "a"):
+                        try:
+                            amount = float(v)
+                        except ValueError:
+                            amount = 0.0
+            fit = [m for m in methods
+                   if amount >= m["min"] and (not m["max"] or amount <= m["max"])]
+            pick = fit[0] if fit else None
+            return {
+                "enabled": True, "min": 100, "max": 5000, "methods": methods,
+                "available": bool(pick) if amount > 0 else None,
+                "method": pick["type"] if pick else None,
+                "instalments": pick["instalments"] if pick else None,
+            }
+        return None
+
     def do_POST(self):
         if self.path.startswith("/api/"):
             return self._api_stub()
@@ -52,6 +92,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/api/"):
+            mock = self._api_mock(self.path)
+            if mock is not None:
+                return self._json(200, mock)
             return self._api_stub()
         # cleanUrls: أضف .html إذا كان الملف موجوداً بهذا الاسم
         path = self.path.split("?")[0].strip("/")

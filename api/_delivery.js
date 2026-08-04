@@ -1,4 +1,5 @@
 // محرك التسليم المشترك — يستخدمه التسليم اليدوي (deliver.js) والدفع الآلي (verify-pay.js)
+const crypto = require("crypto");
 const { sbFetch, sendMail, brandWrap } = require("./_lib.js");
 
 const FILES = {
@@ -47,6 +48,37 @@ const PRODUCTS = {
   "bundle-adults":     { name: "حقيبة التنظيم للكبار", price: 99, files: ["f01-interactive-planner.pdf","f02-budget.xlsx","f03-daily-planner.pdf"] },
   "bundle-everything": { name: "باقة كل شيء (المتجر كاملاً)", price: 149, files: Object.keys(FILES) },
 };
+
+/* ═════════ رقم الطلب ═════════
+   يحمل معه: نسبة الخصم + الكود + مفتاح المنتج + الإيميل.
+   يُنشأ في السيرفر ويعود إلينا من البوابة، فلا يستطيع المتصفح تزويره،
+   وبه نتحقق من أن المبلغ المدفوع يطابق السعر المفترض بعد الخصم.
+   الصيغة: KH-D<pct>C<code>-<productKey>-<emailBase64url>-<n>
+   مصدر واحد للصيغة يخدم Paylink وتمارا معاً — أي اختلاف بينهما
+   يعني طلبات مدفوعة لا نستطيع قراءتها. */
+function buildOrderNumber(percent, code, productKey, email) {
+  const n = crypto.randomBytes(4).readUInt32BE(0) % 100000000;
+  return "KH-D" + (Number(percent) || 0) + "C" + (code || "") + "-" + productKey + "-"
+    + Buffer.from(String(email)).toString("base64url").slice(0, 24) + "-" + n;
+}
+
+function parseOrderNumber(orderNumber) {
+  const s = String(orderNumber || "");
+  const decode = (b) => { try { return Buffer.from(b, "base64url").toString("utf8"); } catch (e) { return ""; } };
+
+  // الكود مقيّد بـ [A-Z0-9] فلا يحتوي شرطة، وبذلك يبقى الفصل واضحاً
+  let m = s.match(/^KH-D(\d{1,3})C([A-Z0-9]*)-(.+)-([A-Za-z0-9_-]+)-\d*$/);
+  if (m) {
+    return { percent: Math.min(100, Number(m[1])), code: m[2] || "",
+             productKey: m[3], email: decode(m[4]) };
+  }
+
+  // الصيغة القديمة (بلا خصم) — طلبات أُنشئت قبل إضافة الأكواد
+  m = s.match(/^KH-(.+)-([A-Za-z0-9_-]+)-\d*$/);
+  if (m) return { percent: 0, code: "", productKey: m[1], email: decode(m[2]) };
+
+  return {};
+}
 
 const EXPIRES = 7 * 24 * 60 * 60; // روابط صالحة 7 أيام
 
@@ -129,4 +161,7 @@ async function addSubscriber(email, name) {
   } catch (e) { /* غير حرج */ }
 }
 
-module.exports = { FILES, PRODUCTS, signLinks, deliverProduct, addSubscriber };
+module.exports = {
+  FILES, PRODUCTS, signLinks, deliverProduct, addSubscriber,
+  buildOrderNumber, parseOrderNumber,
+};

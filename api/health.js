@@ -93,6 +93,52 @@ module.exports = async (req, res) => {
     } catch (e) {
       add("جدول أكواد الخصم", false, String(e.message || e).slice(0, 120), "");
     }
+
+    // جدول الإعدادات — بدونه لا تُحفظ حسابات التواصل ويبقى الفوتر على الافتراضي
+    try {
+      const r = await fetch(env.SUPABASE_URL + "/rest/v1/settings?select=key&limit=1", {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_KEY,
+          Authorization: "Bearer " + env.SUPABASE_SERVICE_KEY,
+        },
+      });
+      add("جدول الإعدادات (حسابات التواصل)", r.ok,
+          r.ok ? "موجود" : "غير موجود (" + r.status + ")",
+          r.ok ? "" : "شغّل supabase-setup.sql مرة أخرى في SQL Editor");
+    } catch (e) {
+      add("جدول الإعدادات (حسابات التواصل)", false, String(e.message || e).slice(0, 120), "");
+    }
+  }
+
+  // ── تمارا ─────────────────────────────────────────────
+  const tmToken = has(env.TAMARA_API_TOKEN);
+  add("مفتاح تمارا", tmToken,
+      tmToken ? "مضبوط" : "غير مضبوط — زر التقسيط مخفي (اختياري)",
+      "TAMARA_API_TOKEN من لوحة تمارا → General settings → API Tokens");
+
+  if (tmToken) {
+    const tmBase = env.TAMARA_MODE === "sandbox"
+      ? "https://api-sandbox.tamara.co" : "https://api.tamara.co";
+    try {
+      const r = await fetch(tmBase + "/checkout/payment-types?country=SA&currency=SAR", {
+        headers: { Authorization: "Bearer " + env.TAMARA_API_TOKEN, accept: "application/json" },
+      });
+      const d = await r.json().catch(() => null);
+      const list = Array.isArray(d) ? d : (d && d.data) || [];
+      add("الاتصال بتمارا", r.ok && list.length > 0,
+          r.ok && list.length
+            ? list.length + " وسيلة دفع متاحة"
+            : "تمارا رفضت المفتاح (" + r.status + ")",
+          r.ok ? "" : "تأكد أن المفتاح يخص نفس الوضع (TAMARA_MODE=sandbox أو اتركه فارغاً للحقيقي)");
+    } catch (e) {
+      add("الاتصال بتمارا", false, String(e.message || e).slice(0, 120), "");
+    }
+
+    add("مفتاح إشعارات تمارا", has(env.TAMARA_NOTIFICATION_KEY),
+        has(env.TAMARA_NOTIFICATION_KEY)
+          ? "مضبوط — الويبهوك يكمل التسليم لو أغلق العميل المتصفح"
+          : "ناقص — الويبهوك مرفوض، والتسليم يعتمد على عودة العميل لصفحة الشكر",
+        "TAMARA_NOTIFICATION_KEY (Notification key) + أضف الرابط في لوحة تمارا → Webhooks");
   }
 
   // ── الإيميل ───────────────────────────────────────────

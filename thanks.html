@@ -31,15 +31,39 @@
 <script>
 const qs = new URLSearchParams(location.search);
 const id = qs.get("id");                                    // ميسر
-const transactionNo = qs.get("transactionNo") || qs.get("transactionNo".toLowerCase()); // Paylink
-const ref = transactionNo || id;
+const transactionNo = qs.get("transactionNo") || qs.get("transactionno"); // Paylink
+const tamaraOrderId = qs.get("orderId") || qs.get("tamaraOrderId");       // تمارا
+const tamaraStatus = String(qs.get("paymentStatus") || "").toLowerCase(); // تمارا
+const ref = transactionNo || tamaraOrderId || id;
 const content = document.getElementById("content");
 
+let WHATSAPP = "966548133555";
+fetch("/api/settings").then(r => r.json()).then(s => {
+  if (s && s.whatsapp) WHATSAPP = s.whatsapp;
+}).catch(function () {});
+
 function waHelp(text){
-  return "https://wa.me/966548133555?text=" + encodeURIComponent(text);
+  return "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(text);
+}
+
+function payBody(){
+  if (transactionNo) return { transactionNo: transactionNo };
+  if (tamaraOrderId) return { tamaraOrderId: tamaraOrderId };
+  return { id: id };
 }
 
 async function run(){
+  // تمارا ترجّع العميل لنفس الرابط في حالتَي النجاح والإلغاء — نفرّق بينهما
+  // من paymentStatus حتى لا نُتعب السيرفر بتحقق نعرف مسبقاً أنه سيفشل
+  if (tamaraOrderId && tamaraStatus && tamaraStatus !== "approved") {
+    content.innerHTML = '<div class="th-icon">🙃</div><h1>ما تم الدفع</h1>' +
+      '<p>' + (tamaraStatus === "canceled" || tamaraStatus === "cancelled"
+        ? "أُلغيت عملية تمارا قبل إتمامها." : "ما اكتملت الموافقة في تمارا.") + '</p>' +
+      '<p><a class="btn btn-primary" href="/#products">ارجع واختر منتجك</a> ' +
+      '<a class="btn btn-ghost" href="' + waHelp("مرحباً، واجهت مشكلة في الدفع عبر تمارا") + '">كلمنا واتساب</a></p>';
+    return;
+  }
+
   if (!ref) {
     content.innerHTML = '<div class="th-icon">💚</div><h1>شكراً لك!</h1><p>ارجع <a href="/" style="color:var(--teal)">للمتجر</a> أو كلمنا واتساب لأي استفسار.</p>';
     return;
@@ -48,7 +72,7 @@ async function run(){
     const r = await fetch("/api/verify-pay", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(transactionNo ? { transactionNo } : { id })
+      body: JSON.stringify(payBody())
     });
     const d = await r.json();
     if (!r.ok) {
