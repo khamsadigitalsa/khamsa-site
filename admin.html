@@ -196,7 +196,7 @@ const dash = document.getElementById("dash");
 async function login(){
   const msg = document.getElementById("login-msg");
   msg.textContent = "لحظة.."; msg.className = "result";
-  const r = await fetch("/api/admin-login", {
+  const r = await fetch("/api/admin?op=login", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({password: document.getElementById("pass").value})
@@ -209,7 +209,7 @@ document.getElementById("pass").addEventListener("keydown", e => { if (e.key ===
 
 let SUBS = [];
 async function loadSubs(){
-  const r = await fetch("/api/subscribers");
+  const r = await fetch("/api/admin?op=subscribers");
   if (!r.ok) { loginPanel.style.display = "block"; dash.style.display = "none"; return; }
   const d = await r.json();
   SUBS = d.subscribers || [];
@@ -254,7 +254,7 @@ document.getElementById("dl-btn").addEventListener("click", async () => {
   btn.disabled = true; btn.textContent = "يسلّم..";
   msg.textContent = ""; msg.className = "result";
   try {
-    const r = await fetch("/api/deliver", {
+    const r = await fetch("/api/admin?op=deliver", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -278,7 +278,7 @@ document.getElementById("chk-btn").addEventListener("click", async () => {
   btn.disabled = true; btn.textContent = "يفحص..";
   msg.textContent = ""; msg.className = "result";
   try {
-    const d = await (await fetch("/api/check-files")).json();
+    const d = await (await fetch("/api/admin?op=check-files")).json();
     if (d.error) {
       msg.textContent = d.error; msg.className = "result err";
     } else if (d.ok) {
@@ -304,7 +304,7 @@ document.getElementById("send-btn").addEventListener("click", async () => {
   btn.disabled = true; btn.textContent = "يرسل..";
   msg.textContent = ""; msg.className = "result";
   try {
-    const r = await fetch("/api/send-email", {
+    const r = await fetch("/api/admin?op=send-email", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -396,7 +396,7 @@ const dcEsc = s => String(s ?? "").replace(/[&<>"']/g,
 })();
 
 async function dcApi(opts){
-  const r = await fetch("/api/admin-discounts", opts);
+  const r = await fetch("/api/admin?op=discounts", opts);
   return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
 }
 

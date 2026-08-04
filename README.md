@@ -89,6 +89,27 @@
 
 > يتطلب تشغيل `supabase-setup.sql` مرة أخرى لإنشاء جدول `settings`.
 
+## ⚠️ حد الـ12 دالة في Vercel (خطة Hobby)
+
+خطة Hobby المجانية تسمح بـ **12 دالة كحد أقصى لكل نشر**، وكل ملف في `api/`
+لا يبدأ بشرطة سفلية يُحسب دالة. تجاوز الحد = فشل النشر بالكامل.
+
+لذلك جُمِّعت النقاط خلف موزّعَين، والمجموع الآن **8 دوال** (باقي 4 للتوسّع):
+
+| الملف | يخدم |
+|---|---|
+| `api/admin.js` | `?op=` login / subscribers / deliver / send-email / check-files / health / discounts |
+| `api/tamara.js` | `?op=` config / start / webhook |
+| `api/settings.js` | حسابات التواصل (GET عام + POST للمالك) |
+| `api/subscribe.js` · `check-discount.js` · `free-order.js` · `pay-start.js` · `verify-pay.js` | نقاط عامة |
+
+**قاعدة عند الإضافة مستقبلاً:** لا تُنشئ ملفاً جديداً في `api/` مباشرة —
+اجعله وحدة باسم `_op-<الاسم>.js` وأضفه لقائمة `OPS` في الموزّع المناسب.
+الملفات التي تبدأ بـ `_` لا تُحسب دوال.
+
+الروابط القديمة (`/api/admin-login`، `/api/tamara-webhook` …) ما زالت تعمل
+عبر `rewrites` في `vercel.json` — فرابط الويبهوك المسجَّل في لوحة تمارا يبقى صالحاً.
+
 ## ملاحظات مهمة
 - **لا ترفع مفاتيحك السرية للموقع أبداً** — مكانها الوحيد Environment Variables في Vercel.
 - حد Gmail المجاني ~500 إيميل/يوم — كافٍ جداً للبداية.

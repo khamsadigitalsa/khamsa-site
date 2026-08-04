@@ -184,7 +184,7 @@ async function refreshTamara() {
   if (!product || discount.free) return;
   let d;
   try {
-    d = await (await fetch("/api/tamara-config?amount=" + discount.price)).json();
+    d = await (await fetch("/api/tamara?op=config&amount=" + discount.price)).json();
   } catch (e) { return; }
   if (!d || !d.enabled) return;
 
@@ -226,7 +226,7 @@ async function payWithTamara() {
 
   btn.disabled = true; btn.textContent = "جاري فتح تمارا..";
   try {
-    const r = await fetch("/api/tamara-start", {
+    const r = await fetch("/api/tamara?op=start", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -244,7 +244,7 @@ async function payWithTamara() {
 }
 
 // شارة تمارا ضمن وسائل الدفع المعروضة
-fetch("/api/tamara-config").then(r => r.json()).then(d => {
+fetch("/api/tamara?op=config").then(r => r.json()).then(d => {
   if (d && d.enabled) {
     const img = document.createElement("img");
     img.src = "/pay/tamara.svg"; img.alt = "تمارا"; img.className = "pay-logo";

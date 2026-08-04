@@ -1,3 +1,15 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/admin-login", "destination": "/api/admin?op=login" },
+    { "source": "/api/subscribers", "destination": "/api/admin?op=subscribers" },
+    { "source": "/api/deliver", "destination": "/api/admin?op=deliver" },
+    { "source": "/api/send-email", "destination": "/api/admin?op=send-email" },
+    { "source": "/api/check-files", "destination": "/api/admin?op=check-files" },
+    { "source": "/api/health", "destination": "/api/admin?op=health" },
+    { "source": "/api/admin-discounts", "destination": "/api/admin?op=discounts" },
+    { "source": "/api/tamara-config", "destination": "/api/tamara?op=config" },
+    { "source": "/api/tamara-start", "destination": "/api/tamara?op=start" },
+    { "source": "/api/tamara-webhook", "destination": "/api/tamara?op=webhook" }
+  ]
 }

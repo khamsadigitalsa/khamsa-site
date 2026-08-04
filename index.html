@@ -336,7 +336,7 @@ fetch("/api/settings").then(r => r.json()).then(s => {
   renderSocials((s && s.social) || {});
 }).catch(function () {});
 
-fetch("/api/tamara-config").then(r => r.json()).then(d => {
+fetch("/api/tamara?op=config").then(r => r.json()).then(d => {
   if (!d || !d.enabled) return;
   TAMARA = d;
   const best = tamaraFor(149);

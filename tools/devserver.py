@@ -60,7 +60,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "youtube": "https://youtube.com/@khamsadigital",
                 },
             }
-        if path.startswith("/api/tamara-config"):
+        if path.startswith("/api/tamara-config") or "op=config" in path:
             methods = [
                 {"type": "PAY_BY_INSTALMENTS", "instalments": 4, "min": 100, "max": 5000},
                 {"type": "PAY_BY_LATER", "instalments": None, "min": 100, "max": 2500},
