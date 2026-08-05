@@ -234,6 +234,38 @@ function tamaraFor(price){
   return inst.length ? inst.sort((a, b) => b.instalments - a.instalments)[0] : fit[0];
 }
 
+/* ═══════════ الشارات — تُدار من لوحة المالك ═══════════
+   الترتيب: نص يدوي من الأدمن ← شارة أوتوماتيكية (تُحسب من المبيعات
+   الحقيقية في السيرفر) ← الشارة الافتراضية المكتوبة هنا.
+   القيمة "-" من الأدمن تخفي الشارة نهائياً. */
+let BADGES = null;
+
+function badgeFor(p){
+  if (!BADGES) return p.tag || "";
+  const m = (BADGES.manual || {})[p.key];
+  if (m === "-") return "";
+  if (m) return m;
+  if (BADGES.mode === "auto" && (BADGES.auto || {})[p.key]) return BADGES.auto[p.key];
+  return p.tag || "";
+}
+
+/* ═══════════ تتبع الإعلانات (Google Ads / GA4) ═══════════
+   لا يُحمَّل أي سكربت تتبع إلا إذا حفظ المالك معرّفاته في لوحة الأدمن —
+   الموقع بدون معرّفات = صفر تتبع، ولا طلب شبكة واحد لقوقل. */
+function loadTracking(t){
+  if (!t || (!t.gadsId && !t.ga4Id)) return;
+  const first = t.gadsId || t.ga4Id;
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(first);
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function(){ dataLayer.push(arguments); };
+  gtag("js", new Date());
+  if (t.gadsId) gtag("config", t.gadsId);
+  if (t.ga4Id) gtag("config", t.ga4Id);
+}
+
 /* ═══════════ تقييمات حقيقية ═══════════
    RATINGS يبقى فارغاً حتى يرد الخادم بتقييمات معتمدة فعلاً.
    المنتج بلا تقييم لا يعرض نجوماً — ولا نجمة افتراضية واحدة. */
@@ -271,10 +303,11 @@ function render(filter){
     // صفحة الدفع محجوبة في robots.txt، فلولا هذا الرابط لما وصل قوقل
     // إلى صفحات المنتجات أصلاً ولا فهرسها.
     const href = '/p/' + p.key;
+    const tag = badgeFor(p);
     card.innerHTML =
       (p.img ? '<a class="card-img" href="' + href + '"><img loading="lazy" src="/products/' + p.img + '" alt="' + esc(p.name) + '" width="400" height="400"></a>'
              : '<div class="card-img bundle-art"><span>🎁</span></div>') +
-      (p.tag ? '<span class="tag">' + esc(p.tag) + '</span>' : '') +
+      (tag ? '<span class="tag">' + esc(tag) + '</span>' : '') +
       '<div class="card-body"><h3><a href="' + href + '">' + esc(p.name) + '</a></h3><p>' + esc(p.desc) + '</p>' +
       '<div class="card-foot"><div class="price">' + (p.old ? '<s>' + p.old + '</s> ' : '') + '<b>' + p.price + '</b> ر.س</div>' +
       (function(){
@@ -434,6 +467,11 @@ fetch("/api/settings").then(r => r.json()).then(s => {
   if (s && typeof s.orderPage === "string") ORDER_PAGE = s.orderPage;
   applyLinks();
   renderSocials((s && s.social) || {});
+  if (s && s.badges) {
+    BADGES = s.badges;
+    render(document.querySelector(".chip.active").dataset.f);
+  }
+  loadTracking(s && s.tracking);
 
   // sameAs يربط المتجر بحساباته الرسمية في نظر قوقل — يقوّي ظهور
   // بطاقة المعرفة ويمنع انتحال الاسم. نبنيه من نفس الحسابات المحفوظة.

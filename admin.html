@@ -123,6 +123,41 @@
     </div>
 
     <div class="panel">
+      <h2>🏷️ شارات المنتجات (الأكثر مبيعاً، جديد..)</h2>
+      <label for="bd-mode">وضع الشارات</label>
+      <select id="bd-mode">
+        <option value="auto">أوتوماتيكي — «الأكثر مبيعاً» تُحسب من طلباتك الحقيقية (3 طلبات فأكثر)</option>
+        <option value="manual">يدوي فقط — أتحكم بكل شارة بنفسي</option>
+      </select>
+      <div class="soc-grid" id="bd-list" style="margin-top:14px"></div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="bd-save">💾 حفظ الشارات</button>
+      </div>
+      <p class="hint">اترك الخانة فاضية = الشارة الأوتوماتيكية أو الافتراضية. اكتب <b>-</b> (شرطة)
+        لإخفاء شارة المنتج نهائياً. أمثلة: جديد 🌟، عرض رمضان، الأفضل للهدايا.</p>
+      <p class="result" id="bd-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h2>📈 قوقل أدز والتحليلات (Google Ads / GA4)</h2>
+      <div class="soc-grid">
+        <div><label for="tr-gads">معرّف Google Ads</label>
+          <input id="tr-gads" dir="ltr" placeholder="AW-123456789"></div>
+        <div><label for="tr-label">تسمية التحويل (Conversion label)</label>
+          <input id="tr-label" dir="ltr" placeholder="AbCdEfGhIj0KLmNo"></div>
+        <div><label for="tr-ga4">معرّف Google Analytics 4 (اختياري)</label>
+          <input id="tr-ga4" dir="ltr" placeholder="G-XXXXXXXXXX"></div>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-primary" id="tr-save">💾 حفظ التتبع</button>
+      </div>
+      <p class="hint">بمجرد الحفظ يبدأ الموقع تلقائياً: تسجيل <b>الشراء بقيمته الفعلية بالريال</b>
+        في صفحة الشكر، وحدث «بدأ الدفع» في صفحة الطلب. بدون معرّفات محفوظة الموقع لا يحمّل
+        أي سكربت تتبع إطلاقاً. طريقة استخراج المعرّفات خطوة بخطوة في ملف README.</p>
+      <p class="result" id="tr-msg"></p>
+    </div>
+
+    <div class="panel">
       <h2>⭐ التقييمات</h2>
       <p class="hint" style="margin-top:0">لا يظهر أي تقييم في الموقع قبل اعتمادك له.
         والنجوم في نتائج قوقل تُحسب من المعتمدة فقط — فاعتمد الحقيقي ولا تعتمد غيره.</p>
@@ -358,6 +393,101 @@ document.getElementById("send-btn").addEventListener("click", async () => {
   btn.disabled = false; btn.textContent = "إرسال";
 });
 
+/* ═══════════ الشارات ═══════════ */
+// قائمة المنتجات مصدرها قائمة التسليم أعلى الصفحة — مصدر واحد لا يتقادم
+function bdProducts(){
+  return [...document.querySelectorAll("#dl-product option")]
+    .map(o => ({ key: o.value, name: o.textContent }));
+}
+
+// يُبنى عند أول تحميل للإعدادات لا عند تحميل السكربت — dcEsc معرّفة بـconst
+// في قسم لاحق، واستدعاؤها هنا وقت التحميل يرمي خطأ TDZ يكسر الصفحة كلها
+function bdBuild(){
+  const box = document.getElementById("bd-list");
+  if (box.children.length) return;
+  box.innerHTML = bdProducts().map(p =>
+    '<div><label for="bd-' + dcEsc(p.key) + '">' + dcEsc(p.name) + '</label>' +
+    '<input id="bd-' + dcEsc(p.key) + '" maxlength="30" placeholder="فاضي = تلقائي"></div>'
+  ).join("");
+}
+
+function bdLoad(s){
+  bdBuild();
+  const b = (s && s.badges) || {};
+  document.getElementById("bd-mode").value = b.mode === "manual" ? "manual" : "auto";
+  bdProducts().forEach(p => {
+    const el = document.getElementById("bd-" + p.key);
+    if (!el) return;
+    el.value = (b.manual || {})[p.key] || "";
+    // الشارة المحسوبة من المبيعات تظهر كتلميح — يعرف المالك وش بيطلع للزوار
+    const auto = (b.auto || {})[p.key];
+    el.placeholder = auto ? "أوتوماتيكي: " + auto : "فاضي = تلقائي";
+  });
+}
+
+document.getElementById("bd-save").addEventListener("click", async () => {
+  const btn = document.getElementById("bd-save");
+  const msg = document.getElementById("bd-msg");
+  bdBuild();   // لو فشل تحميل الإعدادات تبقى القائمة موجودة ولا نحفظ فراغاً بالغلط
+  const manual = {};
+  bdProducts().forEach(p => {
+    const v = (document.getElementById("bd-" + p.key) || {value:""}).value.trim();
+    if (v) manual[p.key] = v;
+  });
+  btn.disabled = true; btn.textContent = "يحفظ..";
+  try {
+    const r = await fetch("/api/settings", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ badges: { mode: document.getElementById("bd-mode").value, manual } })
+    });
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = d.message || d.error || "صار خطأ";
+    msg.className = "result " + (r.ok ? "ok" : "err");
+  } catch (e) { msg.textContent = "تعذر الاتصال"; msg.className = "result err"; }
+  btn.disabled = false; btn.textContent = "💾 حفظ الشارات";
+});
+
+/* ═══════════ التتبع (Google Ads / GA4) ═══════════ */
+function trLoad(s){
+  const t = (s && s.tracking) || {};
+  document.getElementById("tr-gads").value = t.gadsId || "";
+  document.getElementById("tr-label").value = t.gadsLabel || "";
+  document.getElementById("tr-ga4").value = t.ga4Id || "";
+}
+
+document.getElementById("tr-save").addEventListener("click", async () => {
+  const btn = document.getElementById("tr-save");
+  const msg = document.getElementById("tr-msg");
+  const gads = document.getElementById("tr-gads").value.trim();
+  const label = document.getElementById("tr-label").value.trim();
+  msg.textContent = ""; msg.className = "result";
+
+  // نتحقق هنا بصيغة واضحة — السيرفر يتجاهل الصيغ الخاطئة بصمت
+  if (gads && !/^AW-\w{6,15}$/.test(gads)) {
+    msg.textContent = "معرّف Google Ads لازم يكون بصيغة AW-123456789";
+    msg.className = "result err"; return;
+  }
+  if (gads && !label) {
+    msg.textContent = "مع معرّف Ads لازم «تسمية التحويل» — بدونها ما ينسجل الشراء";
+    msg.className = "result err"; return;
+  }
+
+  btn.disabled = true; btn.textContent = "يحفظ..";
+  try {
+    const r = await fetch("/api/settings", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ tracking: {
+        gadsId: gads, gadsLabel: label,
+        ga4Id: document.getElementById("tr-ga4").value.trim(),
+      }})
+    });
+    const d = await r.json().catch(() => ({}));
+    msg.textContent = d.message || d.error || "صار خطأ";
+    msg.className = "result " + (r.ok ? "ok" : "err");
+  } catch (e) { msg.textContent = "تعذر الاتصال"; msg.className = "result err"; }
+  btn.disabled = false; btn.textContent = "💾 حفظ التتبع";
+});
+
 /* ═══════════ التقييمات ═══════════ */
 const RV_STATUS = { pending:"بانتظار المراجعة", approved:"معتمد ومنشور", rejected:"مرفوض" };
 
@@ -465,6 +595,8 @@ async function stLoad(){
     ST_PLATFORMS.forEach(p => {
       document.getElementById("st-" + p).value = (s.social && s.social[p]) || "";
     });
+    bdLoad(s);   // الشارات
+    trLoad(s);   // معرّفات التتبع
   } catch (e) { /* الخانات تبقى فاضية — يقدر يملأها ويحفظ */ }
 }
 

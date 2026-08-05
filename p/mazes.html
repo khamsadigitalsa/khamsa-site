@@ -100,7 +100,7 @@
       <img src="/products/p11.jpg" alt="كراسة المتاهات" width="600" height="600">
     </div>
     <div class="pd-info">
-      
+      <span class="badge" id="pd-badge" hidden></span>
       <h1>كراسة المتاهات</h1>
       <div class="rate-line" id="pd-rate-top"></div>
       <p class="pd-lead">12 متاهة متدرجة تنمي التركيز — بدون شاشات</p>
@@ -158,6 +158,18 @@
     return '<span class="stars" aria-label="' + n + ' من 5">' +
       "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + '</span></span>';
   }
+
+  // الشارة تُدار من لوحة المالك — نفس منطق الصفحة الرئيسية:
+  // يدوي ← أوتوماتيكي (من المبيعات) ← الافتراضي المطبوع، و"-" تخفيها
+  fetch("/api/settings").then(function(r){ return r.json(); }).then(function(s){
+    var b = s && s.badges;
+    var el = document.getElementById("pd-badge");
+    if (!b || !el) return;
+    var m = (b.manual || {})[KEY];
+    var txt = (m === "-") ? "" : (m || (b.mode === "auto" && (b.auto || {})[KEY]) || null);
+    if (txt === "") el.hidden = true;
+    else if (txt) { el.textContent = txt; el.hidden = false; }
+  }).catch(function(){});
 
   fetch("/api/reviews?op=list&product=" + encodeURIComponent(KEY))
     .then(function(r){ return r.json(); })

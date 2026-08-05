@@ -59,6 +59,14 @@ class Handler(SimpleHTTPRequestHandler):
                     "x": "https://x.com/khamsadigital",
                     "youtube": "https://youtube.com/@khamsadigital",
                 },
+                # للفحص المحلي: letters تاخذ الأوتوماتيكي، interactive مخفية بـ"-"،
+                # story يدوي — يغطي الفروع الثلاثة لمنطق badgeFor
+                "badges": {
+                    "mode": "auto",
+                    "manual": {"story": "وصل حديثاً 🌟", "interactive": "-"},
+                    "auto": {"letters": "الأكثر مبيعاً 🔥", "budget": "الأكثر طلباً"},
+                },
+                "tracking": {},
             }
         if path.startswith("/api/tamara-config") or "op=config" in path:
             methods = [
@@ -119,6 +127,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path.startswith("/api/"):
+            if self.path.startswith("/api/settings"):
+                return self._json(200, {"ok": True, "message": "✅ تم الحفظ (محاكاة محلية)"})
             if self.path.startswith("/api/reviews") and "op=submit" in self.path:
                 return self._json(200, {"ok": True,
                                         "message": "وصلنا تقييمك — يظهر بعد مراجعته. شكراً لك 💚"})

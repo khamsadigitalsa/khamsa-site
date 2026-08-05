@@ -131,9 +131,31 @@ const box = document.getElementById("co-product");
 // حالة الخصم — النسخة الموثوقة منها في السيرفر دائماً؛ هذه للعرض فقط
 let discount = { code: "", percent: 0, price: product ? product.price : 0, free: false };
 
+// تتبع الإعلانات — لا يُحمَّل إلا إذا حفظ المالك معرّفاته في لوحة الأدمن
+function loadTracking(t){
+  if (!t || (!t.gadsId && !t.ga4Id)) return;
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(t.gadsId || t.ga4Id);
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function(){ dataLayer.push(arguments); };
+  gtag("js", new Date());
+  if (t.gadsId) gtag("config", t.gadsId);
+  if (t.ga4Id) gtag("config", t.ga4Id);
+  // «بدأ خطوة الدفع» — تفيد حملات إعادة الاستهداف وقياس التسرب قبل الدفع
+  if (product) {
+    gtag("event", "begin_checkout", {
+      currency: "SAR", value: discount.price,
+      items: [{ item_id: key, item_name: product.name, price: discount.price, quantity: 1 }],
+    });
+  }
+}
+
 // رقم الواتساب قابل للتغيير من لوحة المالك
 fetch("/api/settings").then(r => r.json()).then(s => {
   if (s && s.whatsapp) WHATSAPP = s.whatsapp;
+  loadTracking(s && s.tracking);
 }).catch(function () {});
 
 function renderProduct() {

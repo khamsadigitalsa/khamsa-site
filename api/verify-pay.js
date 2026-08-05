@@ -137,6 +137,9 @@ module.exports = async (req, res) => {
       ok: !deliveryError,
       paid: true,
       name: product.name,
+      // بالريال — تستخدمه صفحة الشكر لتسجيل قيمة التحويل في Google Ads
+      amount: Math.round(result.amount),
+      productKey: result.productKey,
       links: links,
       emailed,
       email: result.email,

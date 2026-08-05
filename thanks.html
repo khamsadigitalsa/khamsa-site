@@ -38,8 +38,52 @@ const ref = transactionNo || tamaraOrderId || id;
 const content = document.getElementById("content");
 
 let WHATSAPP = "966548133555";
+
+/* ═══ تسجيل التحويل في Google Ads / GA4 ═══
+   سباق محتمل: التحقق من الدفع قد ينتهي قبل وصول معرّفات التتبع من السيرفر.
+   الحل: صف انتظار — التحويل يُحفظ فيه ويُرسل فور جاهزية التتبع، فلا يضيع. */
+let TRACK = null;
+const convQueue = [];
+
+function sendConversion(c){
+  if (!window.gtag) return;
+  if (TRACK.gadsId && TRACK.gadsLabel) {
+    gtag("event", "conversion", {
+      send_to: TRACK.gadsId + "/" + TRACK.gadsLabel,
+      value: c.value, currency: "SAR", transaction_id: c.id,
+    });
+  }
+  if (TRACK.ga4Id) {
+    gtag("event", "purchase", {
+      transaction_id: c.id, value: c.value, currency: "SAR",
+      items: [{ item_id: c.productKey, item_name: c.name, price: c.value, quantity: 1 }],
+    });
+  }
+}
+
+function fireConversion(c){
+  if (TRACK) sendConversion(c);
+  else convQueue.push(c);
+}
+
+function loadTracking(t){
+  if (!t || (!t.gadsId && !t.ga4Id)) return;
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(t.gadsId || t.ga4Id);
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function(){ dataLayer.push(arguments); };
+  gtag("js", new Date());
+  if (t.gadsId) gtag("config", t.gadsId);
+  if (t.ga4Id) gtag("config", t.ga4Id);
+  TRACK = t;
+  while (convQueue.length) sendConversion(convQueue.shift());
+}
+
 fetch("/api/settings").then(r => r.json()).then(s => {
   if (s && s.whatsapp) WHATSAPP = s.whatsapp;
+  loadTracking(s && s.tracking);
 }).catch(function () {});
 
 function waHelp(text){
@@ -81,6 +125,14 @@ async function run(){
         '<p><a class="btn btn-primary" href="/">جرب مرة ثانية</a> ' +
         '<a class="btn btn-ghost" href="' + waHelp("مرحباً، واجهت مشكلة في الدفع — رقم العملية: " + ref) + '">كلمنا واتساب</a></p>';
       return;
+    }
+
+    // الدفع تأكد — سجّل التحويل سواء نجح التسليم أم تأخر، فالمبيعة حصلت
+    if (d.paid) {
+      fireConversion({
+        value: Number(d.amount) || 0, id: d.orderRef || ref,
+        productKey: d.productKey || "", name: d.name || "",
+      });
     }
 
     // الدفع نجح لكن تجهيز الملفات تعثّر — لا يجوز إيهام العميل أن دفعته فشلت

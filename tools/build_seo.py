@@ -292,7 +292,7 @@ def product_page(p, labels, files):
       <img src="/products/{E(p['img'])}" alt="{E(p['name'])}" width="600" height="600">
     </div>
     <div class="pd-info">
-      {'<span class="badge">' + E(p['tag']) + '</span>' if p['tag'] else ''}
+      <span class="badge" id="pd-badge"{'' if p['tag'] else ' hidden'}>{E(p['tag'])}</span>
       <h1>{E(p['name'])}</h1>
       <div class="rate-line" id="pd-rate-top"></div>
       <p class="pd-lead">{E(p['desc'])}</p>
@@ -365,6 +365,18 @@ REVIEWS_BLOCK = """
     return '<span class="stars" aria-label="' + n + ' من 5">' +
       "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + '</span></span>';
   }
+
+  // الشارة تُدار من لوحة المالك — نفس منطق الصفحة الرئيسية:
+  // يدوي ← أوتوماتيكي (من المبيعات) ← الافتراضي المطبوع، و"-" تخفيها
+  fetch("/api/settings").then(function(r){ return r.json(); }).then(function(s){
+    var b = s && s.badges;
+    var el = document.getElementById("pd-badge");
+    if (!b || !el) return;
+    var m = (b.manual || {})[KEY];
+    var txt = (m === "-") ? "" : (m || (b.mode === "auto" && (b.auto || {})[KEY]) || null);
+    if (txt === "") el.hidden = true;
+    else if (txt) { el.textContent = txt; el.hidden = false; }
+  }).catch(function(){});
 
   fetch("/api/reviews?op=list&product=" + encodeURIComponent(KEY))
     .then(function(r){ return r.json(); })
