@@ -56,6 +56,27 @@ async function sendMail(opts) {
   return gmailSend(opts);
 }
 
+// نسخة نصية من الإيميل — إيميل HTML بلا بديل نصي علامة سبام كلاسيكية،
+// لأن المرسلين الشرعيين يرسلون النسختين والسبام غالباً HTML فقط
+function htmlToText(html) {
+  return String(html || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|table|h\d|li)>/gi, "\n")
+    .replace(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, "$2: $1\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// ترويسة List-Unsubscribe: تخبر Gmail أن المرسل يحترم إلغاء الاشتراك،
+// وتحوّل غضب المستلم من زر «سبام» (يدمّر السمعة) إلى «إلغاء اشتراك» (بلا ضرر)
+function unsubHeader() {
+  const addr = process.env.GMAIL_USER || process.env.SENDER_EMAIL || "";
+  return addr ? "<mailto:" + addr + "?subject=unsubscribe>" : "";
+}
+
 async function gmailSend({ toEmail, toName, subject, html, attachmentUrl, attachmentName }) {
   const nodemailer = require("nodemailer");
   const transport = nodemailer.createTransport({
@@ -68,9 +89,13 @@ async function gmailSend({ toEmail, toName, subject, html, attachmentUrl, attach
   const mail = {
     from: { name: process.env.SENDER_NAME || "خمسة ديجيتال", address: process.env.GMAIL_USER },
     to: toName ? { name: toName, address: toEmail } : toEmail,
+    replyTo: process.env.GMAIL_USER,
     subject: subject,
     html: html,
+    text: htmlToText(html),
   };
+  const unsub = unsubHeader();
+  if (unsub) mail.headers = { "List-Unsubscribe": unsub };
   if (attachmentUrl) {
     mail.attachments = [{ filename: attachmentName || "file.pdf", path: attachmentUrl }];
   }
@@ -84,9 +109,13 @@ async function brevoSend({ toEmail, toName, subject, html, attachmentUrl, attach
       email: process.env.SENDER_EMAIL,
     },
     to: [{ email: toEmail, name: toName || undefined }],
+    replyTo: { email: process.env.GMAIL_USER || process.env.SENDER_EMAIL },
     subject: subject,
     htmlContent: html,
+    textContent: htmlToText(html),
   };
+  const unsub = unsubHeader();
+  if (unsub) payload.headers = { "List-Unsubscribe": unsub };
   if (attachmentUrl) {
     payload.attachment = [{ url: attachmentUrl, name: attachmentName || "file.pdf" }];
   }
@@ -116,7 +145,10 @@ function brandWrap(bodyHtml) {
     <div style="background:#ffffff;border-radius:0 0 16px 16px;padding:26px;color:#22312F;font-size:15px;line-height:1.9">
       ${bodyHtml}
     </div>
-    <div style="text-align:center;color:#9FB3AF;font-size:12px;padding:16px">© خمسة ديجيتال — وصلك هذا الإيميل لأنك مسجل في قائمتنا البريدية</div>
+    <div style="text-align:center;color:#9FB3AF;font-size:12px;padding:16px;line-height:1.9">
+      💡 حتى توصلك ملفاتك دائماً في «الوارد»: أضف إيميلنا لجهات اتصالك.<br>
+      © خمسة ديجيتال — وصلك هذا الإيميل لأنك مسجل في قائمتنا البريدية.
+      ما تبي رسائلنا؟ رد بكلمة «إلغاء» ونوقفها فوراً.</div>
   </div></body></html>`;
 }
 
