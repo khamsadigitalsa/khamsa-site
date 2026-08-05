@@ -37,6 +37,12 @@
   .hc-detail{font-size:.85rem;color:var(--grey);word-break:break-word;line-height:1.7}
   .hc-fix{font-size:.83rem;color:#8a6d14;background:#F5EBD3;border-radius:8px;
     padding:7px 11px;margin-top:6px;line-height:1.7;word-break:break-word}
+  .rv-mod{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .rv-mod-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}
+  .rv-mod-prod{font-size:.83rem;color:var(--grey);word-break:break-word}
+  .rv-mod-body{font-size:.92rem;color:var(--ink);line-height:1.8;margin:9px 0 0;
+    background:#FCFBF8;border-radius:10px;padding:10px 13px}
+  .rv-mod-btns{margin-top:11px}
 </style>
 </head>
 <body>
@@ -114,6 +120,17 @@
       <p class="hint">يرسل للعميل إيميل «شكراً لطلبك» + روابط تحميل آمنة لكل ملفات المنتج/الحزمة (صالحة 7 أيام). يتطلب رفع الملفات مرة واحدة في Supabase Storage — راجع الدليل.</p>
       <p class="result" id="dl-msg"></p>
       <p class="result" id="chk-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h2>⭐ التقييمات</h2>
+      <p class="hint" style="margin-top:0">لا يظهر أي تقييم في الموقع قبل اعتمادك له.
+        والنجوم في نتائج قوقل تُحسب من المعتمدة فقط — فاعتمد الحقيقي ولا تعتمد غيره.</p>
+      <div class="row-actions">
+        <button class="btn btn-ghost" id="rv-refresh">تحديث القائمة</button>
+      </div>
+      <p class="result" id="rv-admin-msg"></p>
+      <div id="rv-admin-list" style="margin-top:12px"></div>
     </div>
 
     <div class="panel">
@@ -217,7 +234,8 @@ async function login(){
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({password: document.getElementById("pass").value})
   });
-  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block"; loadSubs(); dcLoad(); stLoad(); }
+  if (r.ok) { loginPanel.style.display = "none"; dash.style.display = "block";
+              loadSubs(); dcLoad(); stLoad(); rvLoad(); }
   else { msg.textContent = "كلمة السر غير صحيحة"; msg.className = "result err"; }
 }
 document.getElementById("login-btn").addEventListener("click", login);
@@ -339,6 +357,77 @@ document.getElementById("send-btn").addEventListener("click", async () => {
   }
   btn.disabled = false; btn.textContent = "إرسال";
 });
+
+/* ═══════════ التقييمات ═══════════ */
+const RV_STATUS = { pending:"بانتظار المراجعة", approved:"معتمد ومنشور", rejected:"مرفوض" };
+
+function rvStars(n){
+  const f = Math.max(0, Math.min(5, Math.round(Number(n) || 0)));
+  return '<span class="stars">' + "★★★★★".slice(0, f) +
+         '<span class="off">' + "★★★★★".slice(f) + '</span></span>';
+}
+
+async function rvLoad(){
+  const box = document.getElementById("rv-admin-list");
+  const msg = document.getElementById("rv-admin-msg");
+  msg.textContent = ""; msg.className = "result";
+  try {
+    const r = await fetch("/api/reviews?op=pending");
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { box.innerHTML = '<p class="result err">' + dcEsc(d.error || "تعذّرت القراءة") + '</p>'; return; }
+    const list = d.reviews || [];
+    if (!list.length) {
+      box.innerHTML = '<p class="hint">ما وصل أي تقييم بعد. تُرسل دعوة التقييم تلقائياً ' +
+        'مع إيميل التسليم بعد كل عملية شراء.</p>';
+      return;
+    }
+    const waiting = list.filter(x => x.status === "pending").length;
+    box.innerHTML =
+      (waiting ? '<p class="result">🔔 ' + waiting + ' تقييماً ينتظر مراجعتك</p>' : '') +
+      list.map(x =>
+        '<div class="rv-mod" data-id="' + dcEsc(x.id) + '">' +
+          '<div class="rv-mod-head">' +
+            rvStars(x.rating) +
+            '<b>' + dcEsc(x.name || "بدون اسم") + '</b>' +
+            (x.verified ? '<span class="rv-verified">شراء موثّق</span>'
+                        : '<span class="dc-tag warn">طلب مجاني</span>') +
+            '<span class="dc-tag">' + dcEsc(RV_STATUS[x.status] || x.status) + '</span>' +
+          '</div>' +
+          '<div class="rv-mod-prod">' + dcEsc(x.productName) + ' · <span dir="ltr">' +
+            dcEsc(x.email) + '</span></div>' +
+          (x.body ? '<p class="rv-mod-body">' + dcEsc(x.body) + '</p>' : '') +
+          '<div class="rv-mod-btns">' +
+            (x.status !== "approved" ? '<button class="dc-btn rv-ok">✅ اعتماد</button> ' : '') +
+            (x.status !== "rejected" ? '<button class="dc-btn rv-no">🚫 رفض</button> ' : '') +
+            '<button class="dc-btn rv-del">حذف</button>' +
+          '</div>' +
+        '</div>').join("");
+
+    box.querySelectorAll(".rv-mod").forEach(el => {
+      const id = el.dataset.id;
+      const act = async (action, confirmText) => {
+        if (confirmText && !confirm(confirmText)) return;
+        const r = await fetch("/api/reviews?op=moderate", {
+          method: "POST", headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ id, action })
+        });
+        const d = await r.json().catch(() => ({}));
+        // بعد rvLoad لا قبله: rvLoad يبدأ بتفريغ الرسالة، فكتابتها قبله تُمحى فوراً
+        await rvLoad();
+        msg.textContent = d.message || d.error || "";
+        msg.className = "result " + (r.ok ? "ok" : "err");
+      };
+      const ok = el.querySelector(".rv-ok"), no = el.querySelector(".rv-no");
+      if (ok) ok.addEventListener("click", () => act("approved"));
+      if (no) no.addEventListener("click", () => act("rejected"));
+      el.querySelector(".rv-del").addEventListener("click",
+        () => act("delete", "حذف هذا التقييم نهائياً؟"));
+    });
+  } catch (e) {
+    box.innerHTML = '<p class="result err">تعذر الاتصال</p>';
+  }
+}
+document.getElementById("rv-refresh").addEventListener("click", rvLoad);
 
 /* ═══════════ فحص الإعدادات ═══════════ */
 document.getElementById("hc-btn").addEventListener("click", async () => {

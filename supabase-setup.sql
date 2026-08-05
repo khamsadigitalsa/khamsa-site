@@ -46,6 +46,32 @@ alter table public.settings enable row level security;
 
 
 -- ═══════════════════════════════════════════════════════════
+--  التقييمات
+--  لا يُقبل تقييم إلا من طلب حقيقي مسجَّل في جدول orders،
+--  ولا يُعرض إلا بعد موافقة المالك. تقييم واحد لكل طلب.
+-- ═══════════════════════════════════════════════════════════
+create table if not exists public.reviews (
+  id         uuid primary key default gen_random_uuid(),
+  order_id   text not null,
+  product    text not null,
+  email      text not null,
+  name       text default '',
+  rating     int  not null check (rating between 1 and 5),
+  body       text default '',
+  verified   boolean not null default false,   -- true = طلب مدفوع فعلاً
+  status     text not null default 'pending',  -- pending | approved | rejected
+  created_at timestamptz not null default now()
+);
+alter table public.reviews enable row level security;
+
+-- يمنع تقييمين لنفس الطلب — بدونه يستطيع العميل تكرار تقييمه بلا حد
+create unique index if not exists reviews_one_per_order on public.reviews (order_id);
+
+-- الاستعلام الأشيع: تقييمات منتج معيّن المعتمدة فقط
+create index if not exists reviews_product_status on public.reviews (product, status);
+
+
+-- ═══════════════════════════════════════════════════════════
 --  أكواد الخصم
 -- ═══════════════════════════════════════════════════════════
 create table if not exists public.discounts (

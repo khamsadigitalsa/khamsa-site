@@ -83,10 +83,47 @@ class Handler(SimpleHTTPRequestHandler):
                 "method": pick["type"] if pick else None,
                 "instalments": pick["instalments"] if pick else None,
             }
+        # تقييمات وهمية لفحص الواجهة محلياً فقط — الخادم الحقيقي
+        # لا يرجّع شيئاً إلا من تقييمات معتمدة في قاعدة البيانات
+        if path.startswith("/api/reviews"):
+            if "op=summary" in path:
+                return {"products": {"letters": {"count": 3, "average": 4.7},
+                                     "bundle-everything": {"count": 1, "average": 5}}}
+            if "op=list" in path:
+                if "product=letters" not in path:
+                    return {"reviews": [], "count": 0, "average": 0}
+                return {"count": 3, "average": 4.7, "reviews": [
+                    {"name": "أم سارة", "rating": 5, "verified": True,
+                     "body": "بنتي أحبتها وصارت تطلبها كل يوم. الخط واضح والورق ينطبع زين.",
+                     "created_at": "2026-08-01T10:00:00Z"},
+                    {"name": "خالد", "rating": 5, "verified": True, "body": "وصلني فوراً بعد الدفع.",
+                     "created_at": "2026-07-28T10:00:00Z"},
+                    {"name": "نورة", "rating": 4, "verified": False,
+                     "body": "حلوة، بس ودي لو فيها صفحات أكثر.",
+                     "created_at": "2026-07-20T10:00:00Z"},
+                ]}
+            if "op=check" in path:
+                return {"ok": True, "productKey": "letters",
+                        "productName": "كراسة الحروف والأرقام", "already": False, "status": None}
+            if "op=pending" in path:
+                return {"reviews": [
+                    {"id": "1", "product": "letters", "productName": "كراسة الحروف والأرقام",
+                     "email": "um.sara@example.com", "name": "أم سارة", "rating": 5,
+                     "body": "بنتي أحبتها وصارت تطلبها كل يوم.", "verified": True,
+                     "status": "pending", "created_at": "2026-08-04T10:00:00Z"},
+                    {"id": "2", "product": "budget", "productName": "ميزانيتي الذكية (إكسل)",
+                     "email": "free@example.com", "name": "", "rating": 3, "body": "",
+                     "verified": False, "status": "approved", "created_at": "2026-08-02T10:00:00Z"},
+                ]}
         return None
 
     def do_POST(self):
         if self.path.startswith("/api/"):
+            if self.path.startswith("/api/reviews") and "op=submit" in self.path:
+                return self._json(200, {"ok": True,
+                                        "message": "وصلنا تقييمك — يظهر بعد مراجعته. شكراً لك 💚"})
+            if self.path.startswith("/api/reviews") and "op=moderate" in self.path:
+                return self._json(200, {"ok": True, "message": "✅ اعتُمد ويظهر الآن في صفحة المنتج"})
             return self._api_stub()
         self.send_error(405)
 

@@ -36,7 +36,7 @@ async function fulfil(result) {
     if (!alreadyDelivered && result.email) {
       // يُستهلك الكود مرة واحدة فقط، وعند نجاح الدفع لا عند فتح صفحة الدفع
       if (result.code) await redeem(result.code, result.productKey).catch(() => {});
-      const out = await deliverProduct(result.email, result.productKey);
+      const out = await deliverProduct(result.email, result.productKey, result.paymentId);
       links = out.links;
       emailed = true;
       await addSubscriber(result.email, "");

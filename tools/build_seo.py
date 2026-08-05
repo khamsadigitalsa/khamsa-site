@@ -224,7 +224,13 @@ def product_page(p, labels, files):
       "image": "{img_abs}",
       "sku": "{p['key']}",
       "category": "{ld_product['cat']}",
+      "inLanguage": "ar",
       "brand": {{ "@type": "Brand", "name": {jstr(BRAND)} }},
+      "additionalProperty": [
+        {{ "@type": "PropertyValue", "name": "صيغة الملف", "value": {jstr(fmt)} }},
+        {{ "@type": "PropertyValue", "name": "عدد الملفات", "value": "{n}" }},
+        {{ "@type": "PropertyValue", "name": "طريقة التسليم", "value": "تحميل فوري بعد الدفع" }}
+      ],
       "offers": {{
         "@type": "Offer",
         "url": "{url}",
@@ -232,7 +238,14 @@ def product_page(p, labels, files):
         "priceCurrency": "SAR",
         "availability": "https://schema.org/InStock",
         "itemCondition": "https://schema.org/NewCondition",
-        "seller": {{ "@type": "Organization", "name": {jstr(BRAND)} }}
+        "eligibleRegion": {{ "@type": "Country", "name": "SA" }},
+        "seller": {{ "@type": "Organization", "name": {jstr(BRAND)} }},
+        "hasMerchantReturnPolicy": {{
+          "@type": "MerchantReturnPolicy",
+          "applicableCountry": "SA",
+          "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+          "merchantReturnLink": "{SITE}/policies#refund"
+        }}
       }}
     }},
     {{
@@ -281,6 +294,7 @@ def product_page(p, labels, files):
     <div class="pd-info">
       {'<span class="badge">' + E(p['tag']) + '</span>' if p['tag'] else ''}
       <h1>{E(p['name'])}</h1>
+      <div class="rate-line" id="pd-rate-top"></div>
       <p class="pd-lead">{E(p['desc'])}</p>
       <div class="pd-price">
         {'<s>' + str(p['old']) + '</s> ' if p['old'] else ''}<b>{p['price']}</b> ر.س
@@ -317,13 +331,107 @@ def product_page(p, labels, files):
     {faq_html}
   </section>
 
+__REVIEWS__
+
   <section class="pd-sec pd-more">
     <h2>منتجات ذات صلة</h2>
     <div class="pd-related">__RELATED__</div>
     <p style="margin-top:14px"><a class="link-arrow" href="/#products">شوف كل المنتجات</a></p>
   </section>
 </main>
-""" + FOOT
+""".replace("__REVIEWS__", REVIEWS_BLOCK.replace("__KEY__", p["key"]).replace("__URL__", url)) + FOOT
+
+
+# قسم التقييمات: يُجلب من الخادم لا يُبنى هنا، حتى يظهر التقييم الجديد
+# فور اعتماده بدل انتظار إعادة توليد الصفحات.
+# قاعدة صارمة: aggregateRating لا يُحقن إلا إذا رجع عدد تقييمات > 0.
+# صفحة بلا تقييمات تبقى بلا نجوم — لا رقم افتراضي ولا تقدير.
+REVIEWS_BLOCK = """
+  <section class="pd-sec" id="reviews">
+    <h2>تقييمات المشترين</h2>
+    <div id="rv-box"><p class="rv-empty">جاري التحميل..</p></div>
+  </section>
+
+<script>
+(function(){
+  var KEY = "__KEY__";
+  var PRODUCT_ID = "__URL__#product";
+  var box = document.getElementById("rv-box");
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g,
+    function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); };
+
+  function stars(n){
+    var full = Math.max(0, Math.min(5, Math.round(n)));
+    return '<span class="stars" aria-label="' + n + ' من 5">' +
+      "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + '</span></span>';
+  }
+
+  fetch("/api/reviews?op=list&product=" + encodeURIComponent(KEY))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.count) {
+        box.innerHTML = '<p class="rv-empty">ما فيه تقييمات لهذا المنتج بعد — ' +
+          'كن أول من يشاركنا رأيه بعد الشراء 💚</p>';
+        return;
+      }
+
+      box.innerHTML =
+        '<div class="rate-line">' + stars(d.average) +
+        '<b>' + d.average + ' من 5</b><span>· ' + d.count + ' تقييماً</span></div>' +
+        '<div class="rv-list">' + d.reviews.map(function(r){
+          var when = "";
+          try { when = new Date(r.created_at).toLocaleDateString("ar-SA"); } catch (e) {}
+          return '<article class="rv-card"><header>' +
+            '<span class="who">' + esc(r.name || "مشترٍ") + '</span>' +
+            (r.verified ? '<span class="rv-verified">شراء موثّق</span>' : '') +
+            '<span class="when">' + esc(when) + '</span></header>' +
+            stars(r.rating) +
+            (r.body ? '<p style="margin-top:8px">' + esc(r.body) + '</p>' : '') +
+            '</article>';
+        }).join("") + '</div>';
+
+      // نجوم نتائج قوقل — من نفس الرقم المعروض أعلاه حرفياً
+      var el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "@id": PRODUCT_ID,
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": String(d.average),
+          "reviewCount": String(d.count),
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "review": d.reviews.slice(0, 10).map(function(r){
+          return {
+            "@type": "Review",
+            "author": { "@type": "Person", "name": r.name || "مشترٍ" },
+            "datePublished": String(r.created_at || "").slice(0, 10),
+            "reviewBody": r.body || "",
+            "reviewRating": {
+              "@type": "Rating", "ratingValue": String(r.rating),
+              "bestRating": "5", "worstRating": "1"
+            }
+          };
+        })
+      });
+      document.head.appendChild(el);
+
+      // ملخّص مختصر بجانب السعر — أول ما تشوفه العين
+      var top = document.getElementById("pd-rate-top");
+      if (top) {
+        top.innerHTML = '<a href="#reviews" style="display:flex;gap:8px;align-items:center">' +
+          stars(d.average) + '<b>' + d.average + '</b><span>(' + d.count + ')</span></a>';
+      }
+    })
+    .catch(function(){
+      box.innerHTML = '<p class="rv-empty">تعذّر تحميل التقييمات الآن.</p>';
+    });
+})();
+</script>
+"""
 
 
 def jstr(s):

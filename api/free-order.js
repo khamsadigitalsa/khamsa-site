@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
       }),
     });
 
-    const out = await deliverProduct(email, productKey);
+    const out = await deliverProduct(email, productKey, orderId);
     await addSubscriber(email, "");
     await sbFetch("orders?id=eq." + encodeURIComponent(orderId), {
       method: "PATCH",

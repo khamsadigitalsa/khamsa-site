@@ -1,6 +1,6 @@
 // محرك التسليم المشترك — يستخدمه التسليم اليدوي (deliver.js) والدفع الآلي (verify-pay.js)
 const crypto = require("crypto");
-const { sbFetch, sendMail, brandWrap } = require("./_lib.js");
+const { sbFetch, sendMail, brandWrap, reviewLink } = require("./_lib.js");
 
 const FILES = {
   "f01-interactive-planner.pdf": "البلانر العربي التفاعلي (GoodNotes)",
@@ -121,9 +121,21 @@ async function signLinks(productKey) {
   return links;
 }
 
-async function deliverProduct(email, productKey) {
+// orderId اختياري: إن وُجد أضفنا دعوة تقييم موقّعة خاصة بهذا الطلب.
+// التسليم اليدوي من لوحة المالك لا يمرّره، وهذا مقصود — لا نريد
+// طريقاً يستطيع المالك عبره توليد دعوات تقييم بلا شراء حقيقي.
+async function deliverProduct(email, productKey, orderId) {
   const product = PRODUCTS[productKey];
   const links = await signLinks(productKey);
+
+  const reviewCta = orderId ? `
+       <table role="presentation" style="margin:22px 0 6px;width:100%"><tr>
+         <td style="background:#F2F7F6;border-radius:12px;padding:16px;text-align:center">
+           <div style="font-weight:bold;margin-bottom:6px">وش رأيك بالمنتج؟ ⭐</div>
+           <div style="font-size:13px;color:#5E6E6B;margin-bottom:12px">
+             تقييمك يساعد أهالٍ غيرك يقررون — وما ياخذ منك دقيقة.</div>
+           <a href="${reviewLink(orderId)}" style="background:#C9A227;color:#3a2c00;padding:11px 26px;border-radius:99px;text-decoration:none;font-weight:bold;display:inline-block">قيّم المنتج</a>
+         </td></tr></table>` : "";
 
   const buttons = links.map(l =>
     `<table role="presentation" style="margin:10px 0;width:100%"><tr>
@@ -144,7 +156,8 @@ async function deliverProduct(email, productKey) {
        <p style="color:#8a6d14;background:#F5EBD3;border-radius:8px;padding:10px 14px;font-size:13px">
        ⏳ روابط التحميل صالحة لمدة 7 أيام — حمّل ملفاتك الآن واحفظها.
        إذا انتهت الصلاحية أو واجهت أي مشكلة، كلمنا واتساب وبنرسلها لك فوراً.</p>
-       <p>أي تحديث مستقبلي لهذه المنتجات بيوصلك <b>مجاناً</b> على هذا الإيميل 💚</p>`
+       <p>أي تحديث مستقبلي لهذه المنتجات بيوصلك <b>مجاناً</b> على هذا الإيميل 💚</p>
+       ${reviewCta}`
     ),
   });
 

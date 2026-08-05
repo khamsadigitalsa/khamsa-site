@@ -102,6 +102,7 @@
     <div class="pd-info">
       <span class="badge">وفر 68 ريالاً</span>
       <h1>حقيبة التنظيم للكبار</h1>
+      <div class="rate-line" id="pd-rate-top"></div>
       <p class="pd-lead">البلانر التفاعلي + ميزانيتي الذكية + بلانر الطباعة</p>
       <div class="pd-price">
         <s>167</s> <b>99</b> ر.س
@@ -137,6 +138,93 @@
     <h2>أسئلة شائعة</h2>
     <details class="pd-faq"><summary>كيف يوصلني الملف بعد الدفع؟</summary><p>تلقائياً خلال ثوانٍ: تظهر لك روابط التحميل في الصفحة مباشرة، وتصلك نسخة منها على بريدك الإلكتروني. الروابط صالحة 7 أيام — حمّلها واحفظها في جهازك.</p></details><details class="pd-faq"><summary>هل الملف عربي أصلاً أم مترجم؟</summary><p>عربي أصيل. صُمّم من اليمين لليسار من البداية بخطوط عربية، وليس قالباً أجنبياً مترجماً بحروف مقلوبة.</p></details><details class="pd-faq"><summary>هل أدفع مرة واحدة فقط؟</summary><p>نعم. الدفع مرة واحدة، والملف لك للأبد. وأي تحديث مستقبلي لنفس المنتج يوصلك مجاناً على بريدك.</p></details><details class="pd-faq"><summary>ما طرق الدفع المتاحة؟</summary><p>مدى، آبل باي، فيزا وماستركارد عبر بوابة دفع مرخصة من البنك المركزي السعودي. وتقدر تطلب عبر واتساب إذا كان أريح لك.</p></details><details class="pd-faq"><summary>هل يمكن استرجاع المنتج الرقمي؟</summary><p>المنتجات الرقمية غير قابلة للاسترجاع بعد التحميل بطبيعتها، لكن إذا واجهت أي مشكلة تقنية في الملف تواصل معنا خلال 7 أيام ونحلها أو نرجّع مبلغك.</p></details>
   </section>
+
+
+  <section class="pd-sec" id="reviews">
+    <h2>تقييمات المشترين</h2>
+    <div id="rv-box"><p class="rv-empty">جاري التحميل..</p></div>
+  </section>
+
+<script>
+(function(){
+  var KEY = "bundle-adults";
+  var PRODUCT_ID = "https://khamsa-site.vercel.app/p/bundle-adults#product";
+  var box = document.getElementById("rv-box");
+  var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"']/g,
+    function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); };
+
+  function stars(n){
+    var full = Math.max(0, Math.min(5, Math.round(n)));
+    return '<span class="stars" aria-label="' + n + ' من 5">' +
+      "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + '</span></span>';
+  }
+
+  fetch("/api/reviews?op=list&product=" + encodeURIComponent(KEY))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.count) {
+        box.innerHTML = '<p class="rv-empty">ما فيه تقييمات لهذا المنتج بعد — ' +
+          'كن أول من يشاركنا رأيه بعد الشراء 💚</p>';
+        return;
+      }
+
+      box.innerHTML =
+        '<div class="rate-line">' + stars(d.average) +
+        '<b>' + d.average + ' من 5</b><span>· ' + d.count + ' تقييماً</span></div>' +
+        '<div class="rv-list">' + d.reviews.map(function(r){
+          var when = "";
+          try { when = new Date(r.created_at).toLocaleDateString("ar-SA"); } catch (e) {}
+          return '<article class="rv-card"><header>' +
+            '<span class="who">' + esc(r.name || "مشترٍ") + '</span>' +
+            (r.verified ? '<span class="rv-verified">شراء موثّق</span>' : '') +
+            '<span class="when">' + esc(when) + '</span></header>' +
+            stars(r.rating) +
+            (r.body ? '<p style="margin-top:8px">' + esc(r.body) + '</p>' : '') +
+            '</article>';
+        }).join("") + '</div>';
+
+      // نجوم نتائج قوقل — من نفس الرقم المعروض أعلاه حرفياً
+      var el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "@id": PRODUCT_ID,
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": String(d.average),
+          "reviewCount": String(d.count),
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "review": d.reviews.slice(0, 10).map(function(r){
+          return {
+            "@type": "Review",
+            "author": { "@type": "Person", "name": r.name || "مشترٍ" },
+            "datePublished": String(r.created_at || "").slice(0, 10),
+            "reviewBody": r.body || "",
+            "reviewRating": {
+              "@type": "Rating", "ratingValue": String(r.rating),
+              "bestRating": "5", "worstRating": "1"
+            }
+          };
+        })
+      });
+      document.head.appendChild(el);
+
+      // ملخّص مختصر بجانب السعر — أول ما تشوفه العين
+      var top = document.getElementById("pd-rate-top");
+      if (top) {
+        top.innerHTML = '<a href="#reviews" style="display:flex;gap:8px;align-items:center">' +
+          stars(d.average) + '<b>' + d.average + '</b><span>(' + d.count + ')</span></a>';
+      }
+    })
+    .catch(function(){
+      box.innerHTML = '<p class="rv-empty">تعذّر تحميل التقييمات الآن.</p>';
+    });
+})();
+</script>
+
 
   <section class="pd-sec pd-more">
     <h2>منتجات ذات صلة</h2>

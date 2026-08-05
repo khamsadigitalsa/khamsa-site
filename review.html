@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قيّم منتجك — خمسة ديجيتال</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .rv-wrap{max-width:520px;margin:34px auto 60px;padding:0 18px}
+  .rv-wrap h1{font-size:1.5rem;letter-spacing:-.02em;margin-bottom:6px}
+  .rv-prod{color:var(--grey);margin-bottom:20px}
+  .rv-prod b{color:var(--teal-d)}
+  .rv-state{text-align:center;padding:30px 0;color:var(--grey);font-weight:700}
+</style>
+</head>
+<body>
+<div class="rv-wrap">
+  <a href="/" class="back" style="display:inline-block;margin-bottom:14px;color:var(--teal);font-weight:700">→ الرجوع للمتجر</a>
+  <div id="app"><p class="rv-state">لحظة.. نتحقق من رابطك</p></div>
+</div>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const orderId = qs.get("o") || "";
+const token = qs.get("t") || "";
+const app = document.getElementById("app");
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function fail(msg, hint){
+  app.innerHTML = '<div class="panel" style="text-align:center">' +
+    '<div style="font-size:2.4rem">🙃</div>' +
+    '<h1 style="margin:8px 0">' + esc(msg) + '</h1>' +
+    (hint ? '<p style="color:var(--grey);font-size:.92rem">' + esc(hint) + '</p>' : '') +
+    '<p style="margin-top:16px"><a class="btn btn-primary" href="/">ارجع للمتجر</a></p></div>';
+}
+
+function thanks(msg){
+  app.innerHTML = '<div class="panel" style="text-align:center">' +
+    '<div style="font-size:2.6rem">💚</div>' +
+    '<h1 style="margin:8px 0">شكراً لك!</h1>' +
+    '<p style="color:var(--grey)">' + esc(msg) + '</p>' +
+    '<p style="margin-top:18px"><a class="btn btn-gold" href="/#products">🛍️ شوف باقي المنتجات</a></p></div>';
+}
+
+function form(d){
+  app.innerHTML =
+    '<div class="panel">' +
+      '<h1>قيّم منتجك ⭐</h1>' +
+      '<p class="rv-prod">طلبك: <b>' + esc(d.productName) + '</b></p>' +
+
+      '<label>كم تعطيه من 5؟</label>' +
+      '<div class="rv-stars" id="stars" role="radiogroup" aria-label="التقييم">' +
+        [1,2,3,4,5].map(function(i){
+          return '<button type="button" class="rv-star" data-v="' + i + '" ' +
+                 'role="radio" aria-checked="false" aria-label="' + i + ' من 5">★</button>';
+        }).join("") +
+      '</div>' +
+      '<p class="rv-hint" id="rv-label">اضغط على النجوم</p>' +
+
+      '<label for="rv-name" style="margin-top:14px">اسمك (يظهر مع التقييم)</label>' +
+      '<input type="text" id="rv-name" maxlength="40" placeholder="مثال: أم سارة">' +
+
+      '<label for="rv-body" style="margin-top:14px">رأيك (اختياري)</label>' +
+      '<textarea id="rv-body" maxlength="600" style="min-height:110px" ' +
+        'placeholder="وش عجبك؟ وش ممكن نحسّنه؟"></textarea>' +
+
+      '<div class="row-actions"><button class="btn btn-primary btn-block" id="rv-send">أرسل التقييم</button></div>' +
+      '<p class="result" id="rv-msg"></p>' +
+      '<p class="hint">تقييمك يُراجع قبل نشره، ويظهر باسمك فقط — بدون إيميلك.</p>' +
+    '</div>';
+
+  let rating = 0;
+  const LABELS = ["", "ما عجبني", "مقبول", "زين", "زين جداً", "ممتاز!"];
+  const stars = [].slice.call(document.querySelectorAll(".rv-star"));
+
+  function paint(v){
+    stars.forEach(function(s, i){
+      s.classList.toggle("on", i < v);
+      s.setAttribute("aria-checked", String(i + 1 === rating));
+    });
+    document.getElementById("rv-label").textContent = v ? LABELS[v] : "اضغط على النجوم";
+  }
+  stars.forEach(function(s){
+    s.addEventListener("click", function(){ rating = Number(s.dataset.v); paint(rating); });
+    s.addEventListener("mouseenter", function(){ paint(Number(s.dataset.v)); });
+  });
+  document.getElementById("stars").addEventListener("mouseleave", function(){ paint(rating); });
+
+  document.getElementById("rv-send").addEventListener("click", async function(){
+    const btn = document.getElementById("rv-send");
+    const msg = document.getElementById("rv-msg");
+    msg.textContent = ""; msg.className = "result";
+    if (!rating) { msg.textContent = "اختر عدد النجوم أولاً"; msg.className = "result err"; return; }
+
+    btn.disabled = true; btn.textContent = "يرسل..";
+    try {
+      const r = await fetch("/api/reviews?op=submit", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          orderId: orderId, token: token, rating: rating,
+          name: document.getElementById("rv-name").value,
+          body: document.getElementById("rv-body").value
+        })
+      });
+      const d = await r.json().catch(function(){ return {}; });
+      if (r.ok && d.ok) { thanks(d.message); return; }
+      msg.textContent = d.error || "تعذّر الإرسال"; msg.className = "result err";
+    } catch (e) {
+      msg.textContent = "تعذّر الاتصال — جرب مرة ثانية"; msg.className = "result err";
+    }
+    btn.disabled = false; btn.textContent = "أرسل التقييم";
+  });
+}
+
+async function run(){
+  if (!orderId || !token) {
+    fail("رابط ناقص", "افتح رابط التقييم من إيميل الطلب كما وصلك بالضبط."); return;
+  }
+  try {
+    const r = await fetch("/api/reviews?op=check&o=" + encodeURIComponent(orderId) +
+                          "&t=" + encodeURIComponent(token));
+    const d = await r.json().catch(function(){ return {}; });
+    if (!r.ok || !d.ok) {
+      fail(d.error || "رابط غير صالح", "تأكد أنك فتحت الرابط من إيميل الطلب."); return;
+    }
+    if (d.already) {
+      thanks(d.status === "approved"
+        ? "تقييمك منشور في صفحة المنتج — نشكرك عليه."
+        : "وصلنا تقييمك من قبل وهو تحت المراجعة.");
+      return;
+    }
+    form(d);
+  } catch (e) {
+    fail("تعذّر الاتصال", "جرب تحدّث الصفحة بعد لحظات.");
+  }
+}
+run();
+</script>
+</body>
+</html>

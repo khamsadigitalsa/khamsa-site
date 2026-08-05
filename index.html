@@ -21,9 +21,10 @@
 <meta name="twitter:image" content="https://khamsa-site.vercel.app/logo.png">
 <link rel="icon" type="image/png" href="/favicon.png">
 
-
-<meta name="google-site-verification" content="48CQNh17CoFQiTngz7XvRi7TklE2Vl9ZnCDP9T4ZQak" />
-     
+<!-- توثيق ملكية الموقع في Google Search Console:
+     Search Console → إضافة موقع → طريقة «علامة HTML» → انسخ قيمة content
+     وألصقها هنا بعد إزالة علامتَي التعليق.
+<meta name="google-site-verification" content="ضع-القيمة-هنا"> -->
 
 <script type="application/ld+json">
 {
@@ -236,6 +237,24 @@ function tamaraFor(price){
   return inst.length ? inst.sort((a, b) => b.instalments - a.instalments)[0] : fit[0];
 }
 
+/* ═══════════ تقييمات حقيقية ═══════════
+   RATINGS يبقى فارغاً حتى يرد الخادم بتقييمات معتمدة فعلاً.
+   المنتج بلا تقييم لا يعرض نجوماً — ولا نجمة افتراضية واحدة. */
+let RATINGS = {};
+
+function starsHtml(n){
+  const f = Math.max(0, Math.min(5, Math.round(n)));
+  return '<span class="stars" aria-label="' + n + ' من 5">' +
+    "★★★★★".slice(0, f) + '<span class="off">' + "★★★★★".slice(f) + '</span></span>';
+}
+
+function rateLine(key){
+  const r = RATINGS[key];
+  if (!r || !r.count) return "";
+  return '<div class="card-rate">' + starsHtml(r.average) +
+         '<span>' + r.average + ' (' + r.count + ')</span></div>';
+}
+
 function tamaraCardLine(price){
   const m = tamaraFor(price);
   if (!m) return "";
@@ -267,7 +286,7 @@ function render(filter){
         if (CHECKOUT_READY && p.key) return '<a class="btn btn-sm" href="/checkout?p=' + p.key + '">اطلب الآن 🛒</a>';
         if (p.buy) return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + p.buy + '">اطلب الآن 🛒</a>';
         return '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waLink(p.name, p.price) + '">اطلب عبر واتساب</a>';
-      })() + '</div>' + tamaraCardLine(p.price) + '</div>';
+      })() + '</div>' + rateLine(p.key) + tamaraCardLine(p.price) + '</div>';
     grid.appendChild(card);
   });
   observeReveals();
@@ -432,6 +451,12 @@ fetch("/api/settings").then(r => r.json()).then(s => {
     });
     document.head.appendChild(el);
   }
+}).catch(function () {});
+
+fetch("/api/reviews?op=summary").then(r => r.json()).then(d => {
+  if (!d || !d.products || !Object.keys(d.products).length) return;
+  RATINGS = d.products;
+  render(document.querySelector(".chip.active").dataset.f);
 }).catch(function () {});
 
 fetch("/api/tamara?op=config").then(r => r.json()).then(d => {

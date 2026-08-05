@@ -12,6 +12,34 @@ function isAuthed(req) {
   return process.env.ADMIN_PASSWORD && cookies.admin_token === adminToken();
 }
 
+// عنوان الموقع — يُستخدم في روابط الإيميل التي لا يوجد فيها طلب HTTP نقرأ منه المضيف
+function siteUrl() {
+  return String(process.env.SITE_URL || "https://khamsa-site.vercel.app").trim().replace(/\/+$/, "");
+}
+
+// توقيع رابط التقييم: بدونه يستطيع أي أحد تخمين رقم طلب وكتابة تقييم
+// باسم مشترٍ لم يشترِ. التوقيع يُشتق من مفتاح سري لا يغادر السيرفر.
+function reviewToken(orderId) {
+  const secret = process.env.REVIEW_SECRET
+    || process.env.SUPABASE_SERVICE_KEY
+    || process.env.ADMIN_PASSWORD
+    || "";
+  return crypto.createHmac("sha256", secret)
+    .update("review:" + String(orderId))
+    .digest("base64url").slice(0, 32);
+}
+
+function checkReviewToken(orderId, token) {
+  const want = Buffer.from(reviewToken(orderId));
+  const got = Buffer.from(String(token || ""));
+  return want.length === got.length && crypto.timingSafeEqual(want, got);
+}
+
+function reviewLink(orderId) {
+  return siteUrl() + "/review?o=" + encodeURIComponent(orderId)
+    + "&t=" + reviewToken(orderId);
+}
+
 async function sbFetch(path, options) {
   const url = process.env.SUPABASE_URL + "/rest/v1/" + path;
   const headers = Object.assign({
@@ -92,4 +120,7 @@ function brandWrap(bodyHtml) {
   </div></body></html>`;
 }
 
-module.exports = { adminToken, isAuthed, sbFetch, sendMail, brevoSend, gmailSend, brandWrap };
+module.exports = {
+  adminToken, isAuthed, sbFetch, sendMail, brevoSend, gmailSend, brandWrap,
+  siteUrl, reviewToken, checkReviewToken, reviewLink,
+};

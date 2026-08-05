@@ -304,6 +304,37 @@ a{text-decoration:none;color:inherit}
 .pd-rel b{font-size:.88rem;padding:11px 13px 3px;line-height:1.5}
 .pd-rel span{font-size:.86rem;color:var(--teal-d);font-weight:800;padding:0 13px 13px}
 
+/* ---------- التقييمات ---------- */
+.rv-stars{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end}
+.rv-star{background:none;border:none;cursor:pointer;font-size:2.4rem;line-height:1;
+  color:#DDD6C4;padding:0 2px;font-family:inherit;
+  transition:color .15s var(--ease),transform .15s var(--ease)}
+.rv-star:hover{transform:scale(1.12)}
+.rv-star.on{color:var(--gold)}
+.rv-hint{min-height:22px;color:var(--grey);font-weight:700;font-size:.9rem;margin-top:4px}
+
+/* عرض التقييم (للقراءة) — النجوم نص عادي حتى تُقرأ في قارئ الشاشة */
+.stars{color:var(--gold);letter-spacing:1px;font-size:.95rem;white-space:nowrap}
+.stars .off{color:#DDD6C4}
+.rate-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-size:.88rem;color:var(--grey);margin-top:8px}
+.rate-line b{color:var(--ink)}
+
+.rv-list{display:grid;gap:14px;margin-top:18px}
+.rv-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.rv-card header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.rv-card .who{font-weight:800;font-size:.95rem}
+.rv-card .when{color:var(--grey);font-size:.8rem;margin-inline-start:auto}
+.rv-verified{background:var(--teal-l);color:var(--teal-d);border-radius:99px;
+  padding:2px 10px;font-size:.72rem;font-weight:800}
+.rv-card p{color:var(--grey);font-size:.93rem;line-height:1.8;margin:0}
+.rv-empty{color:var(--grey);font-size:.93rem;background:var(--teal-soft);
+  border-radius:14px;padding:16px 18px}
+
+/* نجوم مصغّرة داخل بطاقة المنتج في الصفحة الرئيسية */
+.card-rate{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--grey)}
+.card-rate .stars{font-size:.85rem}
+
 /* ---------- الأدمن وصفحات النماذج ---------- */
 .admin-wrap{max-width:960px;margin:44px auto;padding:0 22px}
 .panel{background:#fff;border-radius:var(--r);border:1px solid var(--line);
