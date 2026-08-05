@@ -183,8 +183,6 @@
       <div class="soc-grid" id="soc-grid">
         <div><label for="st-whatsapp">📱 رقم الواتساب</label>
           <input id="st-whatsapp" dir="ltr" placeholder="966548133555" inputmode="numeric"></div>
-        <div><label for="st-orderPage">🔗 صفحة الطلب (وصلاتي)</label>
-          <input id="st-orderPage" dir="ltr" placeholder="https://waslati.com/khamsa"></div>
         <div><label for="st-tiktok">🎵 تيك توك</label>
           <input id="st-tiktok" dir="ltr" placeholder="https://tiktok.com/@..."></div>
         <div><label for="st-instagram">📸 إنستغرام</label>
@@ -199,6 +197,13 @@
           <input id="st-facebook" dir="ltr" placeholder="https://facebook.com/..."></div>
         <div><label for="st-telegram">✈️ تيليجرام</label>
           <input id="st-telegram" dir="ltr" placeholder="https://t.me/..."></div>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+        <label for="an-text">📣 شريط الإعلان أعلى الموقع (اختياري)</label>
+        <input id="an-text" maxlength="90" placeholder="مثال: 🎁 خصم 20% بكود WELCOME20 — لفترة محدودة">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer">
+          <input type="checkbox" id="an-on" style="width:auto"> <span>إظهار الشريط في الموقع</span>
+        </label>
       </div>
       <div class="row-actions">
         <button class="btn btn-primary" id="st-save">💾 حفظ الحسابات</button>
@@ -591,7 +596,8 @@ async function stLoad(){
   try {
     const s = await (await fetch("/api/settings")).json();
     document.getElementById("st-whatsapp").value = s.whatsapp || "";
-    document.getElementById("st-orderPage").value = s.orderPage || "";
+    document.getElementById("an-text").value = (s.announce && s.announce.text) || "";
+    document.getElementById("an-on").checked = Boolean(s.announce && s.announce.on);
     ST_PLATFORMS.forEach(p => {
       document.getElementById("st-" + p).value = (s.social && s.social[p]) || "";
     });
@@ -627,8 +633,11 @@ document.getElementById("st-save").addEventListener("click", async () => {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         whatsapp: document.getElementById("st-whatsapp").value,
-        orderPage: document.getElementById("st-orderPage").value.trim(),
         social: social,
+        announce: {
+          text: document.getElementById("an-text").value,
+          on: document.getElementById("an-on").checked,
+        },
       })
     });
     const d = await r.json().catch(() => ({}));

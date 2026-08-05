@@ -67,6 +67,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "auto": {"letters": "الأكثر مبيعاً 🔥", "budget": "الأكثر طلباً"},
                 },
                 "tracking": {},
+                "announce": {"text": "🎁 سجل إيميلك وخذ نموذج كراسة الحروف مجاناً + خصم ترحيبي", "on": True},
             }
         if path.startswith("/api/tamara-config") or "op=config" in path:
             methods = [
@@ -129,6 +130,13 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path.startswith("/api/"):
             if self.path.startswith("/api/settings"):
                 return self._json(200, {"ok": True, "message": "✅ تم الحفظ (محاكاة محلية)"})
+            if self.path.startswith("/api/subscribe"):
+                return self._json(200, {
+                    "ok": True,
+                    "gift": "/products/p05.jpg",   # رابط وهمي للفحص المحلي فقط
+                    "giftName": "نموذج مجاني — كراسة الحروف والأرقام",
+                    "message": "تم! هديتك تحتك وأرسلنا نسخة لإيميلك 🎁",
+                })
             if self.path.startswith("/api/reviews") and "op=submit" in self.path:
                 return self._json(200, {"ok": True,
                                         "message": "وصلنا تقييمك — يظهر بعد مراجعته. شكراً لك 💚"})

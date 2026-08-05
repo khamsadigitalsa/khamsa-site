@@ -38,6 +38,7 @@ BUCKET = "files"
 
 # أسماء الملفات كما ينتظرها api/_delivery.js — أي اختلاف بحرف واحد يكسر التسليم
 EXPECTED = [
+    "f00-free-letters-sample.pdf",   # الهدية المجانية — يولّدها tools/make_free_sample.py
     "f01-interactive-planner.pdf", "f02-budget.xlsx", "f03-daily-planner.pdf",
     "f04-cv-arabic.docx", "f05-cv-english.docx", "f06-letters-numbers.pdf",
     "f07-numbers-1-20.pdf", "f08-first-words.pdf", "f09-shapes-colors.pdf",

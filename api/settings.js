@@ -83,6 +83,7 @@ module.exports = async (req, res) => {
       social: v.social || {},
       badges: { mode: mode, manual: badgesCfg.manual || {}, auto: auto },
       tracking: v.tracking || {},
+      announce: v.announce || { text: "", on: false },
     });
   }
 
@@ -112,6 +113,14 @@ module.exports = async (req, res) => {
       if (t) manual[k] = t;   // "-" تُحفظ كما هي = إخفاء
     });
     value.badges = { mode: src.mode === "manual" ? "manual" : "auto", manual: manual };
+  }
+
+  if ("announce" in b) {
+    const a = b.announce || {};
+    value.announce = {
+      text: String(a.text || "").replace(/[<>]/g, "").trim().slice(0, 90),
+      on: Boolean(a.on),
+    };
   }
 
   if ("tracking" in b) {

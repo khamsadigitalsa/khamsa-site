@@ -18,6 +18,7 @@ import html
 import pathlib
 import re
 import sys
+from urllib.parse import quote
 
 for _s in (sys.stdout, sys.stderr):
     try:
@@ -158,6 +159,7 @@ def head(title, description, canonical, image, extra_ld=""):
 {extra_ld}
 </head>
 <body>
+<div class="announce" id="announce" hidden></div>
 <nav class="nav">
   <div class="wrap nav-inner">
     <a href="/" class="brand"><img src="/logo.png" alt="{E(BRAND)}"><span>خمسة <b>ديجيتال</b></span></a>
@@ -172,22 +174,38 @@ def head(title, description, canonical, image, extra_ld=""):
 """
 
 
-FOOT = f"""
+# نص عادي لا f-string: الجافاسكربت أدناه مليء بأقواس {} تكسر تفسير f-string،
+# فنستبدل اسم المتجر بعلامة صريحة بدل الاعتماد على الاستيفاء
+FOOT = """
 <footer class="footer">
   <div class="wrap foot-inner">
-    <img src="/logo.png" alt="{E(BRAND)}" class="foot-logo">
+    <img src="/logo.png" alt="__BRAND__" class="foot-logo">
     <div class="foot-links">
       <a href="/#products">🛍️ كل المنتجات</a>
       <a href="/policies">📄 الشروط والسياسات</a>
-      <a href="/#subscribe">🎁 الهدية المجانية</a>
+      <a href="/free">🎁 الهدية المجانية</a>
     </div>
-    <p class="copy">© <span id="year"></span> {E(BRAND)} — جميع الحقوق محفوظة</p>
+    <p class="copy">© <span id="year"></span> __BRAND__ — جميع الحقوق محفوظة</p>
   </div>
 </footer>
-<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+<a class="wa-float" id="wa-float" href="#" target="_blank" rel="noopener" aria-label="كلمنا واتساب">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35zM12.05 21.8h-.02a9.8 9.8 0 0 1-4.99-1.37l-.36-.21-3.7.97.99-3.61-.23-.37a9.78 9.78 0 0 1-1.5-5.23c0-5.4 4.4-9.79 9.82-9.79 2.62 0 5.08 1.02 6.93 2.87a9.73 9.73 0 0 1 2.87 6.93c0 5.4-4.4 9.81-9.81 9.81zM20.52 3.49A11.72 11.72 0 0 0 12.05 0C5.55 0 .26 5.29.26 11.79c0 2.08.54 4.11 1.58 5.9L.16 24l6.45-1.69a11.75 11.75 0 0 0 5.44 1.39h.01c6.5 0 11.79-5.29 11.79-11.79 0-3.15-1.23-6.11-3.46-8.34z"/></svg>
+</a>
+<script>document.getElementById("year").textContent = new Date().getFullYear();
+// نسخ رابط المنتج — أسرع طريقة يشاركه فيها الزائر بأي مكان
+(function(){
+  var b = document.getElementById("pd-copy");
+  if (!b) return;
+  b.addEventListener("click", function(){
+    var done = function(){ b.textContent = "✅ انتسخ"; setTimeout(function(){ b.textContent = "🔗 نسخ الرابط"; }, 1800); };
+    if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.url).then(done);
+    else { prompt("انسخ الرابط:", b.dataset.url); }
+  });
+})();
+</script>
 </body>
 </html>
-"""
+""".replace("__BRAND__", E(BRAND))
 
 
 def product_page(p, labels, files):
@@ -301,6 +319,13 @@ def product_page(p, labels, files):
       </div>
       {save}
       <a class="btn btn-primary pd-cta" href="/checkout?p={E(p['key'])}">اطلب الآن وحمّله فوراً 🛒</a>
+      <div class="pd-share">
+        <span>شاركه مع أحد يحتاجه:</span>
+        <a class="pd-share-btn" target="_blank" rel="noopener"
+           href="https://wa.me/?text={E(quote(p['name'] + ' — ' + str(p['price']) + ' ر.س ' + url))}"
+           aria-label="مشاركة عبر واتساب">💬 واتساب</a>
+        <button class="pd-share-btn" type="button" id="pd-copy" data-url="{url}">🔗 نسخ الرابط</button>
+      </div>
       <ul class="pd-trust">
         <li>⚡ تحميل فوري بعد الدفع — بدون انتظار</li>
         <li>🔄 تحديثات مجانية مدى الحياة على بريدك</li>
@@ -366,10 +391,20 @@ REVIEWS_BLOCK = """
       "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + '</span></span>';
   }
 
-  // الشارة تُدار من لوحة المالك — نفس منطق الصفحة الرئيسية:
-  // يدوي ← أوتوماتيكي (من المبيعات) ← الافتراضي المطبوع، و"-" تخفيها
+  // إعدادات المالك: الشارة (يدوي ← أوتوماتيكي ← الافتراضي المطبوع، و"-" تخفيها)
+  // + رقم الواتساب للزر العائم + شريط الإعلان
   fetch("/api/settings").then(function(r){ return r.json(); }).then(function(s){
-    var b = s && s.badges;
+    if (!s) return;
+    var wa = document.getElementById("wa-float");
+    if (wa && s.whatsapp) {
+      wa.href = "https://wa.me/" + s.whatsapp + "?text=" +
+        encodeURIComponent("مرحباً 👋 عندي استفسار عن: " + document.title);
+    }
+    var bar = document.getElementById("announce");
+    if (bar && s.announce && s.announce.on && s.announce.text) {
+      bar.textContent = s.announce.text; bar.hidden = false;
+    }
+    var b = s.badges;
     var el = document.getElementById("pd-badge");
     if (!b || !el) return;
     var m = (b.manual || {})[KEY];
@@ -481,7 +516,9 @@ def main():
         (out_dir / f"{p['key']}.html").write_text(page, encoding="utf-8")
 
     today = datetime.date.today().isoformat()
-    urls = [(f"{SITE}/", "1.0", "weekly"), (f"{SITE}/policies", "0.3", "yearly")]
+    urls = [(f"{SITE}/", "1.0", "weekly"),
+            (f"{SITE}/free", "0.9", "monthly"),   # صفحة الهدية — أهم صفحة جذب مجاني
+            (f"{SITE}/policies", "0.3", "yearly")]
     urls += [(f"{SITE}/p/{p['key']}", "0.8", "monthly") for p in products]
 
     sitemap = ['<?xml version="1.0" encoding="UTF-8"?>',
